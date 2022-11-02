@@ -1,0 +1,8 @@
+FROM golangci/golangci-lint:v1.50.0
+
+ADD . /go/src/github.com/ngrok/firewall_toolkit
+WORKDIR /go/src/github.com/ngrok/firewall_toolkit
+
+RUN apt-get update && apt-get install -y libpcap-dev && apt-get clean
+
+CMD ["/usr/bin/golangci-lint", "run", "-v", "-E", "gofmt", "-E", "nestif", "-E", "stylecheck"]

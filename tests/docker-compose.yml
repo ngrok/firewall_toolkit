@@ -1,0 +1,18 @@
+version: '3'
+services:
+  fwtk-input-filter-sets-manager:
+    image: firewall_toolkit:${TAG}
+    hostname: fwtk
+    restart: on-failure
+    networks:
+      integration:
+        ipv4_address: 172.200.1.100
+    cap_add:
+      - "NET_ADMIN"
+    command: 
+      ["tests/integration-wrapper.sh"]
+networks:
+  integration:
+    ipam:
+      config:
+        - subnet: 172.200.1.0/24
