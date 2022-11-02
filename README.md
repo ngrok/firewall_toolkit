@@ -184,7 +184,7 @@ Aborted (core dumped)
 
 ## Getting help
 
-If you have a problem or suggestion, please [open an issue](https://github.com/ngrok/firewall_toolkit/issues/new) in this repository. While we cannot guarantee support if time allows we will do our best to help. Please note that this project adheres to the [Contributor Covenant Code of Conduct](/CODE_OF_CONDUCT.md). We are also available in [slack](ngrok.com/slack).
+If you have a problem or suggestion, please [open an issue](https://github.com/ngrok/firewall_toolkit/issues/new) in this repository. While we cannot guarantee support if time allows we will do our best to help. Please note that this project adheres to the [Contributor Covenant Code of Conduct](/CODE_OF_CONDUCT.md). We are also available in [slack](https://ngrok.com/slack).
 
 ## Contributing
 
