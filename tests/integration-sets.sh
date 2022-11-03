@@ -139,21 +139,21 @@ begin_test "add ip range (172.200.1.101-172.200.1.105) to the list"
 )
 end_test
 
-begin_test "$CLIENT_IP to $SERVER_IP:8000 allowed"
+begin_test "$CLIENT_IP to $SERVER_IP:8000 blocked"
 (
     $DOCKER_COMPOSE_EXEC $NFT_LIST_TABLE inet $TABLE
     $CURL $SERVER_IP:8000
 )
 end_test_exfail
 
-begin_test "$CLIENT_IP to $SERVER_IP:8001 blocked"
+begin_test "$CLIENT_IP to $SERVER_IP:8001 allowed"
 (
     $DOCKER_COMPOSE_EXEC $NFT_LIST_TABLE inet $TABLE
     $CURL $SERVER_IP:8001
 )
 end_test
 
-begin_test "$CLIENT_IP to $SERVER_IP:8002 blocked"
+begin_test "$CLIENT_IP to $SERVER_IP:8002 allowed"
 (
     $DOCKER_COMPOSE_EXEC $NFT_LIST_TABLE inet $TABLE
     $CURL $SERVER_IP:8002
