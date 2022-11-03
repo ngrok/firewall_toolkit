@@ -146,7 +146,7 @@ func TestNewPortSet(t *testing.T) {
 	assert.Equal(t, nftables.TypeInetService, res.Set.KeyType)
 }
 
-func TestUpdateSet(t *testing.T) {
+func TestClearAndAddElements(t *testing.T) {
 	want := [][]byte{
 		// batch begin
 		{0x0, 0x0, 0x0, 0xa},

@@ -18,10 +18,10 @@ import (
 // Constants used temporarily while initialzing a set
 const (
 	// https://datatracker.ietf.org/doc/html/rfc5737#section-3
-	InitIPV4 = "192.0.2.1"
+	InitIPv4 = "192.0.2.1"
 	// https://datatracker.ietf.org/doc/html/rfc5156#section-2.6
-	InitIPV6 = "2001:0db8:85a3:1:1:8a2e:0370:7334"
-	InitPORT = "1"
+	InitIPv6 = "2001:0db8:85a3:1:1:8a2e:0370:7334"
+	InitPort = "1"
 )
 
 // Set represents an nftables netlink connection and a set on a given table
@@ -38,9 +38,9 @@ func New(name string, c *nftables.Conn, table *nftables.Table, keyType nftables.
 	var initElems []nftables.SetElement
 	switch keyType {
 	case nftables.TypeIPAddr:
-		ip, err := AddressStringToSetData(InitIPV4)
+		ip, err := AddressStringToSetData(InitIPv4)
 		if err != nil {
-			return Set{}, fmt.Errorf("failed to parse initial port set element %v: %v", InitIPV4, err)
+			return Set{}, fmt.Errorf("failed to parse initial port set element %v: %v", InitIPv4, err)
 		}
 
 		initElems, err = generateElements(keyType, []SetData{ip})
@@ -48,9 +48,9 @@ func New(name string, c *nftables.Conn, table *nftables.Table, keyType nftables.
 			return Set{}, fmt.Errorf("failed to generate initial ipv4 set element %v: %v", ip, err)
 		}
 	case nftables.TypeIP6Addr:
-		ip, err := AddressStringToSetData(InitIPV6)
+		ip, err := AddressStringToSetData(InitIPv6)
 		if err != nil {
-			return Set{}, fmt.Errorf("failed to parse initial ipv6 set element %v: %v", InitIPV6, err)
+			return Set{}, fmt.Errorf("failed to parse initial ipv6 set element %v: %v", InitIPv6, err)
 		}
 
 		initElems, err = generateElements(keyType, []SetData{ip})
@@ -58,9 +58,9 @@ func New(name string, c *nftables.Conn, table *nftables.Table, keyType nftables.
 			return Set{}, fmt.Errorf("failed to generate initial ipv6 set element: %v: %v", ip, err)
 		}
 	case nftables.TypeInetService:
-		port, err := PortStringToSetData(InitPORT)
+		port, err := PortStringToSetData(InitPort)
 		if err != nil {
-			return Set{}, fmt.Errorf("failed to parse initial port set element %v: %v", InitPORT, err)
+			return Set{}, fmt.Errorf("failed to parse initial port set element %v: %v", InitPort, err)
 		}
 
 		initElems, err = generateElements(keyType, []SetData{port})
