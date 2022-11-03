@@ -1,28 +1,19 @@
 #!/bin/bash
 
-TEST_SUITE="compat-bpf"
-
-export BASEDIR=$(cd $(dirname "$0") && cd .. && pwd)
-. "$BASEDIR/tests/include/compat.sh"
-. "$BASEDIR/tests/include/common.sh"
-. "$BASEDIR/tests/include/testlib.sh"
-
 if [ -f /.dockerenv ]; then
     echo "doesn't work inside docker, quitting"
     exit 0
 fi
 
 MISSING_TOOLS=0
+BPFTOOL=`which bpftool`
+export CLANG=`which clang`
 
-if [ -f `which bpftool` ]; then 
-    BPFTOOL=`which bpftool`
-else 
+if [ -z $BPFTOOL ]; then 
     MISSING_TOOLS=1
 fi 
 
-if [ -f `which clang` ]; then 
-    export CLANG=`which clang`
-else 
+if [ -z $CLANG ]; then 
     MISSING_TOOLS=1
 fi 
 
@@ -31,6 +22,15 @@ if [ $MISSING_TOOLS -eq 1 ]; then
   echo "sudo apt-get install -y clang linux-tools-common linux-tools-aws linux-tools-5.15.0-1019-aws"
   exit 1
 fi
+
+TEST_SUITE="compat-bpf"
+
+export BASEDIR=$(cd $(dirname "$0") && cd .. && pwd)
+. "$BASEDIR/tests/include/common.sh"
+. "$BASEDIR/tests/include/compat.sh"
+. "$BASEDIR/tests/include/testlib.sh"
+
+PINNED_PATH="/sys/fs/bpf/fwtk"
 
 begin_test "create table, chain and bpf rule"
 (

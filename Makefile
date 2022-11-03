@@ -2,7 +2,6 @@ GOFLAGS = -mod=vendor
 export TAG := $(shell git rev-parse --short HEAD)
 export PATH := $(PATH):/usr/local/go/bin
 export COMPOSE_INTERACTIVE_NO_CLI := 1
-export PINNED_PATH := /sys/fs/bpf/fwtk
 
 input-filter-sets:
 	CGO_ENABLED=0 go install $(GOFLAGS) -v ./cmd/fwtk-input-filter-sets

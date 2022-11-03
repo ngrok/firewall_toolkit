@@ -3,8 +3,8 @@
 TEST_SUITE="compat-sets"
 
 export BASEDIR=$(cd $(dirname "$0") && cd .. && pwd)
-. "$BASEDIR/tests/include/compat.sh"
 . "$BASEDIR/tests/include/common.sh"
+. "$BASEDIR/tests/include/compat.sh"
 . "$BASEDIR/tests/include/testlib.sh"
 
 begin_test "create tables, chain and sets"

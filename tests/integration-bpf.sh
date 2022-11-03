@@ -3,6 +3,7 @@
 TEST_SUITE="integration-bpf"
 
 export BASEDIR=$(cd $(dirname "$0") && cd .. && pwd)
+. "$BASEDIR/tests/include/common.sh"
 . "$BASEDIR/tests/include/compat.sh"
 . "$BASEDIR/tests/include/testlib.sh"
 

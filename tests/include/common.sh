@@ -1,8 +1,8 @@
-#!/bin/sh
+#!/bin/bash
 
-if [ -f `which nft` ]; then 
-    NFT=`which nft`
-else 
+NFT=`which nft`
+
+if [ -z $NFT ]; then 
     echo "nft not installed"
     exit 1 
 fi 

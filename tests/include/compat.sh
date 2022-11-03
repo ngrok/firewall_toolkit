@@ -5,17 +5,10 @@ if [ `whoami` != "root" ]; then
     exit 1
 fi
 
-if [ -f `which jq` ]; then 
-    JQ=`which jq`
-else 
-    echo "jq not installed"
-    exit 1 
-fi 
+JQ=`which jq`
 
-if [ -f `which nft` ]; then 
-    NFT=`which nft`
-else 
-    echo "nft not installed"
+if [ -z $JQ ]; then 
+    echo "jq not installed"
     exit 1 
 fi 
 
