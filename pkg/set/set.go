@@ -32,9 +32,9 @@ type Set struct {
 
 // Create a new set on a table with a given key type
 func New(name string, c *nftables.Conn, table *nftables.Table, keyType nftables.SetDatatype) (Set, error) {
-	// sets need to be initialized with a value otherwise nftables seems to default to the
-	// native endianness (likely little endian) which is incorrect for ips, ports, etc
-	// we set everything to documentation values and then immediately delete them leaving empty, correctly created sets
+	// we've seen problems where sets need to be initialized with a value otherwise nftables seems to default to the
+	// native endianness, likely little endian, which is always incorrect for network stuff resulting in backwards ips, etc.
+	// we set everything to documentation values and then immediately delete them leaving empty, correctly created sets.
 	var initElems []nftables.SetElement
 	switch keyType {
 	case nftables.TypeIPAddr:
@@ -82,6 +82,12 @@ func New(name string, c *nftables.Conn, table *nftables.Table, keyType nftables.
 	if err := c.AddSet(set, initElems); err != nil {
 		return Set{}, fmt.Errorf("nftables set init failed for %v: %v", name, err)
 	}
+
+	if err := c.Flush(); err != nil {
+		return Set{}, fmt.Errorf("error flushing set %v: %v", name, err)
+	}
+
+	c.FlushSet(set)
 
 	if err := c.Flush(); err != nil {
 		return Set{}, fmt.Errorf("error flushing set %v: %v", name, err)
