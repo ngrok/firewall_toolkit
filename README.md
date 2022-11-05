@@ -26,7 +26,7 @@ This program does the following:
 * The rule can either accept or drop traffic based on the filter with the `-verdict` switch
 
 ```
-make bpf
+$ make bpf
 $ sudo ~/go/bin/fwtk-input-filter-bpf -chain=filter -table=bpf -filter="host 198.51.100.1"
 ```
 
@@ -65,7 +65,7 @@ This program does the following:
   * Drops incoming traffic that matches all of the above sets, protocols, etc
 
 ```
-make input-filter-sets
+$ make input-filter-sets
 $ sudo ~/go/bin/fwtk-input-filter-sets -chain=filter -table=test -iplist=tests/compat_ip.list -portlist=tests/compat_port.list
 ```
 ```
