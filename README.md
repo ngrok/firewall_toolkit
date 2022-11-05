@@ -26,7 +26,7 @@ This program does the following:
 * The rule can either accept or drop traffic based on the filter with the `-verdict` switch
 
 ```
-$ make bpf
+$ make input-filter-bpf
 $ sudo ~/go/bin/fwtk-input-filter-bpf -chain=filter -table=bpf -filter="host 198.51.100.1"
 ```
 
