@@ -23,7 +23,6 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"flag"
 	"os"
 	"sync"
@@ -35,6 +34,7 @@ import (
 
 	"github.com/ngrok/firewall_toolkit/pkg/expressions"
 	"github.com/ngrok/firewall_toolkit/pkg/logger"
+	"github.com/ngrok/firewall_toolkit/pkg/rule"
 	"github.com/ngrok/firewall_toolkit/pkg/set"
 )
 
@@ -115,70 +115,42 @@ func main() {
 	}
 
 	// put everything in the sets
-	if err := ipv4Set.ClearAndAddElements(ipList); err != nil {
+	if err := ipv4Set.ClearAndAddElements(c, ipList); err != nil {
 		logger.Default.Fatalf("failed to update ipv4 set elements: %v", err)
 	}
 
-	if err := ipv6Set.ClearAndAddElements(ipList); err != nil {
+	if err := ipv6Set.ClearAndAddElements(c, ipList); err != nil {
 		logger.Default.Fatalf("failed to update ipv6 set elements: %v", err)
 	}
 
-	if err := portSet.ClearAndAddElements(portList); err != nil {
+	if err := portSet.ClearAndAddElements(c, portList); err != nil {
 		logger.Default.Fatalf("failed to update port set elements: %v", err)
 	}
 
-	rules, err := c.GetRules(nfTable, nfChain)
+	if err := c.Flush(); err != nil {
+		logger.Default.Fatalf("add elements flush failed: %v", err)
+	}
+
+	ruleInfo := newRuleInfo(portSet, ipv4Set, ipv6Set)
+
+	ruleData, err := ruleInfo.createRuleData()
 	if err != nil {
-		logger.Default.Fatal(err)
+		logger.Default.Fatalf("failed to create rules: %v", err)
 	}
 
-	// we should use handles for this but they aren't available until after flush
-	// https://github.com/google/nftables/pull/88
-	IPv4RuleExists := false
-	IPv6RuleExists := false
-	IPv4RuleID := []byte{0xd, 0xe, 0xa, 0xd}
-	IPv6RuleID := []byte{0xc, 0xa, 0xf, 0xe}
 	flush := false
-	for _, rule := range rules {
-		if bytes.Equal(rule.UserData, IPv4RuleID) {
-			IPv4RuleExists = true
-		}
-
-		if bytes.Equal(rule.UserData, IPv6RuleID) {
-			IPv6RuleExists = true
-		}
-	}
-
-	if !IPv4RuleExists {
-		ipV4Rule, err := generateRule(portSet.Set, ipv4Set.Set)
+	for _, rD := range ruleData {
+		added, err := rule.Add(c, nfTable, nfChain, rD)
 		if err != nil {
-			logger.Default.Fatal(err)
+			logger.Default.Fatalf("adding rule %x failed: %v", rD.ID, err)
 		}
 
-		c.AddRule(&nftables.Rule{
-			Table:    nfTable,
-			Chain:    nfChain,
-			Exprs:    ipV4Rule,
-			UserData: IPv4RuleID,
-		})
-
-		flush = true
-	}
-
-	if !IPv6RuleExists {
-		ipV6Rule, err := generateRule(portSet.Set, ipv6Set.Set)
-		if err != nil {
-			logger.Default.Fatal(err)
+		if added {
+			logger.Default.Infof("rule %x added", rD.ID)
+			flush = true
+		} else {
+			logger.Default.Infof("rule %x already exists", rD.ID)
 		}
-
-		c.AddRule(&nftables.Rule{
-			Table:    nfTable,
-			Chain:    nfChain,
-			Exprs:    ipV6Rule,
-			UserData: IPv6RuleID,
-		})
-
-		flush = true
 	}
 
 	if flush {
@@ -190,9 +162,9 @@ func main() {
 	// manager mode will keep running refreshing sets based on what's in the files
 	if *mode == "manager" {
 		var wg sync.WaitGroup
-		wg.Add(3)
+		wg.Add(4)
 
-		ipv4SetManager, err := set.SetManagerInit(
+		ipv4SetManager, err := set.ManagerInit(
 			&wg,
 			c,
 			&ipv4Set,
@@ -205,7 +177,7 @@ func main() {
 			logger.Default.Fatal(err)
 		}
 
-		ipv6SetManager, err := set.SetManagerInit(
+		ipv6SetManager, err := set.ManagerInit(
 			&wg,
 			c,
 			&ipv6Set,
@@ -218,7 +190,7 @@ func main() {
 			logger.Default.Fatal(err)
 		}
 
-		portSetManager, err := set.SetManagerInit(
+		portSetManager, err := set.ManagerInit(
 			&wg,
 			c,
 			&portSet,
@@ -231,9 +203,24 @@ func main() {
 			logger.Default.Fatal(err)
 		}
 
+		ruleManager, err := rule.ManagerInit(
+			&wg,
+			c,
+			nfTable,
+			nfChain,
+			ruleInfo.createRuleData,
+			RefreshInterval,
+			logger.Default,
+		)
+
+		if err != nil {
+			logger.Default.Fatal(err)
+		}
+
 		go ipv4SetManager.Start()
 		go ipv6SetManager.Start()
 		go portSetManager.Start()
+		go ruleManager.Start()
 
 		wg.Wait()
 	}
@@ -301,7 +288,39 @@ func readFile(path string) ([]string, error) {
 	return list, nil
 }
 
-func generateRule(portSet *nftables.Set, ipSet *nftables.Set) ([]expr.Any, error) {
+type ruleInfo struct {
+	PortSet set.Set
+	IPv4Set set.Set
+	IPv6Set set.Set
+}
+
+func newRuleInfo(portSet set.Set, ipv4Set set.Set, ipv6Set set.Set) ruleInfo {
+	return ruleInfo{
+		PortSet: portSet,
+		IPv4Set: ipv4Set,
+		IPv6Set: ipv6Set,
+	}
+}
+
+func (s *ruleInfo) createRuleData() ([]rule.RuleData, error) {
+	ipv6Exprs, err := generateExpression(s.PortSet.Set, s.IPv6Set.Set)
+	if err != nil {
+		return []rule.RuleData{}, err
+	}
+
+	ipv4Exprs, err := generateExpression(s.PortSet.Set, s.IPv4Set.Set)
+	if err != nil {
+		return []rule.RuleData{}, err
+	}
+
+	// give each rule a unique id so we can track it's existence
+	ipv4Rule := rule.NewRuleData([]byte{0xd, 0xe, 0xa, 0xd}, ipv4Exprs)
+	ipv6Rule := rule.NewRuleData([]byte{0xc, 0xa, 0xf, 0xe}, ipv6Exprs)
+
+	return []rule.RuleData{ipv4Rule, ipv6Rule}, nil
+}
+
+func generateExpression(portSet *nftables.Set, ipSet *nftables.Set) ([]expr.Any, error) {
 	// FIXME: we should come up with a better, more abstract way to build rules like this
 	// create all the rule expressions to use the sets
 	expressionList := []expr.Any{}

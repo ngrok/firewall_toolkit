@@ -38,6 +38,12 @@ begin_test "create table, chain and bpf rule"
 )
 end_test
 
+begin_test "rule should already exist"
+(
+    $GO_BIN_PATH/fwtk-input-filter-bpf -chain=$CHAIN -table=$TABLE  -filter="src 198.51.100.1" 2>&1 | grep 'rule 0d0e0a0d already exists'
+)
+end_test
+
 begin_test "validate nft output: hook"
 (
     $NFT_LIST_TABLE ip $TABLE

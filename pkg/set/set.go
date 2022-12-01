@@ -24,10 +24,9 @@ const (
 	InitPort = "1"
 )
 
-// Set represents an nftables netlink connection and a set on a given table
+// Set represents an nftables a set on a given table
 type Set struct {
-	Conn *nftables.Conn
-	Set  *nftables.Set
+	Set *nftables.Set
 }
 
 // Create a new set on a table with a given key type
@@ -94,13 +93,12 @@ func New(name string, c *nftables.Conn, table *nftables.Table, keyType nftables.
 	}
 
 	return Set{
-		Conn: c,
-		Set:  set,
+		Set: set,
 	}, nil
 }
 
 // Compares incoming set elements with existing set elements and adds/removes the differences
-func (s *Set) UpdateElements(newSetData []SetData) error {
+func (s *Set) UpdateElements(c *nftables.Conn, newSetData []SetData) error {
 	// FIXME: we should be smarter about removing diffs from the sets
 	// we loose counters when we flush the whole set, etc
 	// ideally we'd collapse contiguous ranges, sort and delete beginning and ending intervals appropriately
@@ -110,8 +108,8 @@ func (s *Set) UpdateElements(newSetData []SetData) error {
 }
 
 // Remove all elements from the set and then add a list of elements
-func (s *Set) ClearAndAddElements(newSetData []SetData) error {
-	s.Conn.FlushSet(s.Set)
+func (s *Set) ClearAndAddElements(c *nftables.Conn, newSetData []SetData) error {
+	c.FlushSet(s.Set)
 
 	newElems, err := generateElements(s.Set.KeyType, newSetData)
 	if err != nil {
@@ -119,13 +117,8 @@ func (s *Set) ClearAndAddElements(newSetData []SetData) error {
 	}
 
 	// add everything in newSetData to the set
-	if err := s.Conn.SetAddElements(s.Set, newElems); err != nil {
+	if err := c.SetAddElements(s.Set, newElems); err != nil {
 		return fmt.Errorf("nftables add set elements failed for %v: %v", s.Set.Name, err)
-	}
-
-	// flush it
-	if err := s.Conn.Flush(); err != nil {
-		return fmt.Errorf("error flushing set %v with new elements %v: %v", s.Set.Name, newElems, err)
 	}
 
 	return nil
