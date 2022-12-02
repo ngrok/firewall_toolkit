@@ -27,7 +27,7 @@ type ManagedSet struct {
 }
 
 // Create a set manager
-func SetManagerInit(wg *sync.WaitGroup, c *nftables.Conn, set *Set, f SetUpdateFunc, interval time.Duration, logger logger.Logger) (ManagedSet, error) {
+func ManagerInit(wg *sync.WaitGroup, c *nftables.Conn, set *Set, f SetUpdateFunc, interval time.Duration, logger logger.Logger) (ManagedSet, error) {
 	return ManagedSet{
 		WaitGroup:     wg,
 		Conn:          c,
@@ -40,7 +40,7 @@ func SetManagerInit(wg *sync.WaitGroup, c *nftables.Conn, set *Set, f SetUpdateF
 
 // Start the set manager goroutine
 func (s *ManagedSet) Start() {
-	s.logger.Infof("starting manager for %v", s.Set.Set.Name)
+	s.logger.Infof("starting set manager fortable/set %v/%v", s.Set.Set.Table.Name, s.Set.Set.Name)
 	defer s.WaitGroup.Done()
 
 	sigChan := make(chan os.Signal, 1)
@@ -59,19 +59,19 @@ func (s *ManagedSet) Start() {
 
 				data, err := s.setUpdateFunc()
 				if err != nil {
-					s.logger.Errorf("error with set update function for set %v: %v", s.Set.Set.Name, err)
+					s.logger.Errorf("error with set update function for table/set %v/%v: %v", s.Set.Set.Table.Name, s.Set.Set.Name, err)
 					flush = false
 				}
 
-				if err := s.Set.ClearAndAddElements(data); err != nil {
-					s.logger.Errorf("error updating set for %v: %v", s.Set.Set.Name, err)
+				if err := s.Set.ClearAndAddElements(s.Conn, data); err != nil {
+					s.logger.Errorf("error updating table/set %v/%v: %v", s.Set.Set.Table.Name, s.Set.Set.Name, err)
 					flush = false
 				}
 
 				// only flush if things went well above
 				if flush {
 					if err := s.Conn.Flush(); err != nil {
-						s.logger.Errorf("error flushing set %v: %v", s.Set.Set.Name, err)
+						s.logger.Errorf("error flushing table/set %v/%v: %v", s.Set.Set.Table.Name, s.Set.Set.Name, err)
 					}
 				}
 			}
@@ -79,5 +79,5 @@ func (s *ManagedSet) Start() {
 	}()
 
 	<-sigChan
-	s.logger.Infof("got sigterm, stopping ip set update loop for %v", s.Set.Set.Name)
+	s.logger.Infof("got sigterm, stopping set update loop for table/set %v/%v", s.Set.Set.Table.Name, s.Set.Set.Name)
 }

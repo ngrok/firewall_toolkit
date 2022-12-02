@@ -13,6 +13,12 @@ begin_test "create tables, chain and sets"
 )
 end_test
 
+begin_test "rules should already exist"
+(
+    $GO_BIN_PATH/fwtk-input-filter-sets -chain=$CHAIN -table=$TABLE -iplist=$BASEDIR/tests/compat_ip.list -portlist=$BASEDIR/tests/compat_port.list 2>&1 | grep 'rule 0d0e0a0d already exists'
+)
+end_test
+
 begin_test "validate nft output: hook"
 (
     $NFT_LIST_TABLE inet $TABLE

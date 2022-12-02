@@ -30,6 +30,7 @@ import (
 
 	"github.com/ngrok/firewall_toolkit/pkg/expressions"
 	"github.com/ngrok/firewall_toolkit/pkg/logger"
+	"github.com/ngrok/firewall_toolkit/pkg/rule"
 	"github.com/ngrok/firewall_toolkit/pkg/xtables"
 )
 
@@ -84,21 +85,21 @@ func main() {
 		logger.Default.Fatal(err)
 	}
 
-	bpfMatch := expressions.MatchBpfWithVerdict(xtBpfInfoBytes, nfVerdict)
-
-	// clear out the chain so we get exactly what we want
-	c.FlushChain(nfChain)
-
-	c.AddRule(&nftables.Rule{
-		Table: nfTable,
-		Chain: nfChain,
-		Exprs: bpfMatch,
-	},
-	)
-
-	if err := c.Flush(); err != nil {
-		logger.Default.Fatalf("nftables flush failed: %v", err)
+	bpfRule := rule.NewRuleData([]byte{0xd, 0xe, 0xa, 0xd}, expressions.MatchBpfWithVerdict(xtBpfInfoBytes, nfVerdict))
+	added, err := rule.Add(c, nfTable, nfChain, bpfRule)
+	if err != nil {
+		logger.Default.Fatalf("adding rule %x failed: %v", bpfRule.ID, err)
 	}
+
+	if added {
+		if err := c.Flush(); err != nil {
+			logger.Default.Fatalf("nftables flush failed: %v", err)
+		}
+		logger.Default.Infof("rule %x added", bpfRule.ID)
+	} else {
+		logger.Default.Infof("rule %x already exists", bpfRule.ID)
+	}
+
 }
 
 func getVerdict(verdict string) (*expr.Verdict, error) {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/nftables"
 	"github.com/google/nftables/expr"
+	"github.com/ngrok/firewall_toolkit/pkg/set"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,7 +27,7 @@ func TestGenerateIPv4Rule(t *testing.T) {
 
 	portSet := nftables.Set{Name: "testportset", KeyType: nftables.TypeInetService}
 	ipSet := nftables.Set{Name: "testipset", KeyType: nftables.TypeIPAddr}
-	res, err := generateRule(&portSet, &ipSet)
+	res, err := generateExpression(&portSet, &ipSet)
 	assert.Nil(t, err)
 
 	assert.Equal(t, len(want), len(res))
@@ -52,7 +53,7 @@ func TestGenerateIPv6Rule(t *testing.T) {
 
 	portSet := nftables.Set{Name: "testportset", KeyType: nftables.TypeInetService}
 	ipSet := nftables.Set{Name: "testipset", KeyType: nftables.TypeIP6Addr}
-	res, err := generateRule(&portSet, &ipSet)
+	res, err := generateExpression(&portSet, &ipSet)
 	assert.Nil(t, err)
 
 	assert.Equal(t, len(want), len(res))
@@ -60,4 +61,17 @@ func TestGenerateIPv6Rule(t *testing.T) {
 	for i, e := range res {
 		assert.Equal(t, want[i], e)
 	}
+}
+
+func TestCreateRuleData(t *testing.T) {
+	portSet := set.Set{Set: &nftables.Set{Name: "testportset", KeyType: nftables.TypeInetService}}
+	ipv4Set := set.Set{Set: &nftables.Set{Name: "testipv4set", KeyType: nftables.TypeIPAddr}}
+	ipv6Set := set.Set{Set: &nftables.Set{Name: "testipv6set", KeyType: nftables.TypeIP6Addr}}
+
+	ruleInfo := newRuleInfo(portSet, ipv4Set, ipv6Set)
+	ruleData, err := ruleInfo.createRuleData()
+	assert.Nil(t, err)
+
+	assert.Equal(t, ruleData[0].ID, []byte{0xd, 0xe, 0xa, 0xd})
+	assert.Equal(t, ruleData[1].ID, []byte{0xc, 0xa, 0xf, 0xe})
 }
