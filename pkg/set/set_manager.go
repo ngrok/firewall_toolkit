@@ -55,17 +55,16 @@ func (s *ManagedSet) Start() {
 			case <-done:
 				return
 			case <-ticker.C:
-				flush := true
-
 				data, err := s.setUpdateFunc()
 				if err != nil {
 					s.logger.Errorf("error with set update function for table/set %v/%v: %v", s.Set.Set.Table.Name, s.Set.Set.Name, err)
-					flush = false
+					continue
 				}
 
-				if err := s.Set.ClearAndAddElements(s.Conn, data); err != nil {
+				flush, err := s.Set.UpdateElements(s.Conn, data)
+				if err != nil {
 					s.logger.Errorf("error updating table/set %v/%v: %v", s.Set.Set.Table.Name, s.Set.Set.Name, err)
-					flush = false
+					continue
 				}
 
 				// only flush if things went well above
