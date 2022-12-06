@@ -20,20 +20,18 @@ type RulesUpdateFunc func() ([]RuleData, error)
 type ManagedRules struct {
 	WaitGroup       *sync.WaitGroup
 	Conn            *nftables.Conn
-	Table           *nftables.Table
-	Chain           *nftables.Chain
+	RuleTarget      RuleTarget
 	rulesUpdateFunc RulesUpdateFunc
 	interval        time.Duration
 	logger          logger.Logger
 }
 
 // Create a rule manager
-func ManagerInit(wg *sync.WaitGroup, c *nftables.Conn, table *nftables.Table, chain *nftables.Chain, f RulesUpdateFunc, interval time.Duration, logger logger.Logger) (ManagedRules, error) {
+func ManagerInit(wg *sync.WaitGroup, c *nftables.Conn, ruleTarget RuleTarget, f RulesUpdateFunc, interval time.Duration, logger logger.Logger) (ManagedRules, error) {
 	return ManagedRules{
 		WaitGroup:       wg,
 		Conn:            c,
-		Table:           table,
-		Chain:           chain,
+		RuleTarget:      ruleTarget,
 		rulesUpdateFunc: f,
 		interval:        interval,
 		logger:          logger,
@@ -42,7 +40,7 @@ func ManagerInit(wg *sync.WaitGroup, c *nftables.Conn, table *nftables.Table, ch
 
 // Start the rule manager goroutine
 func (r *ManagedRules) Start() {
-	r.logger.Infof("starting rule manager for table/chain %v/%v", r.Table.Name, r.Chain.Name)
+	r.logger.Infof("starting rule manager for table/chain %v/%v", r.RuleTarget.Table.Name, r.RuleTarget.Chain.Name)
 	defer r.WaitGroup.Done()
 
 	sigChan := make(chan os.Signal, 1)
@@ -62,19 +60,19 @@ func (r *ManagedRules) Start() {
 
 				ruleData, err := r.rulesUpdateFunc()
 				if err != nil {
-					r.logger.Errorf("error with rules update function for table/chain %v/%v: %v", r.Table.Name, r.Chain.Name, err)
+					r.logger.Errorf("error with rules update function for table/chain %v/%v: %v", r.RuleTarget.Table.Name, r.RuleTarget.Chain.Name, err)
 					flush = false
 				}
 
 				for _, rD := range ruleData {
-					added, err := Add(r.Conn, r.Table, r.Chain, rD)
+					added, err := r.RuleTarget.Add(r.Conn, rD)
 					if err != nil {
-						r.logger.Errorf("error adding rule %x for table/chain %v/%v: %v", rD.ID, r.Table.Name, r.Chain.Name, err)
+						r.logger.Errorf("error adding rule %x for table/chain %v/%v: %v", rD.ID, r.RuleTarget.Table.Name, r.RuleTarget.Chain.Name, err)
 						flush = false
 					}
 
 					if added {
-						r.logger.Infof("added rule %x for table/chain %v/%v", rD.ID, r.Table.Name, r.Chain.Name)
+						r.logger.Infof("added rule %x for table/chain %v/%v", rD.ID, r.RuleTarget.Table.Name, r.RuleTarget.Chain.Name)
 						addCount++
 					}
 				}
@@ -86,9 +84,9 @@ func (r *ManagedRules) Start() {
 
 				// only flush if things went well above
 				if flush {
-					r.logger.Infof("flushing %v rules for table/chain %v/%v", addCount, r.Table.Name, r.Chain.Name)
+					r.logger.Infof("flushing %v rules for table/chain %v/%v", addCount, r.RuleTarget.Table.Name, r.RuleTarget.Chain.Name)
 					if err := r.Conn.Flush(); err != nil {
-						r.logger.Errorf("error flushing rules for table/chain %v/%v: %v", r.Table.Name, r.Chain.Name, err)
+						r.logger.Errorf("error flushing rules for table/chain %v/%v: %v", r.RuleTarget.Table.Name, r.RuleTarget.Chain.Name, err)
 					}
 				}
 			}
@@ -96,5 +94,5 @@ func (r *ManagedRules) Start() {
 	}()
 
 	<-sigChan
-	r.logger.Infof("got sigterm, stopping rule update loop for table/chain %v/%v", r.Table.Name, r.Chain.Name)
+	r.logger.Infof("got sigterm, stopping rule update loop for table/chain %v/%v", r.RuleTarget.Table.Name, r.RuleTarget.Chain.Name)
 }

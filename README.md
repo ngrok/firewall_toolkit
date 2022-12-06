@@ -4,6 +4,7 @@ This is a collection of golang libraries and tools for managing nftables. It pro
 * `pkg/expressions` includes nftables expression partials for generating common firewall rules.
 * `pkg/xtables` library for bpf/ebpf nftables rule creation. It supports adding all three types of xtables bpf match configurations: bytecode, pinned bpf programs and socket file descriptors.
 * `pkg/set` is a library for managing nftables sets, it supports IPv4, IPv6 and port based set types.
+* `pkg/rule` is a library for managing nftable rules, it uses rule "user data" to provide unique IDs for each rule in a given chain.
 * `pkg/logger` supports the stdlib log and [zerolog](https://github.com/rs/zerolog), or bring your own logger.
 * `pkg/utils` utility functions for validating IPs and etc.
 * `cmd/*` provides tools you can use to manage nftables built on top of the firewall_toolkit, also serves as an example of how to use the library.

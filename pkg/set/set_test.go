@@ -15,15 +15,25 @@ import (
 )
 
 func TestNewSetBadType(t *testing.T) {
-	c := testDialWithWant(t, [][]byte{})
+	want := [][]byte{
+		// batch begin
+		{0x0, 0x0, 0x0, 0xa},
+		// add testtable
+		// "0x74, 0x65, 0x73, 0x74, 0x74, 0x61, 0x62, 0x6c, 0x65" == "testtable"
+		{0x1, 0x0, 0x0, 0x0, 0xe, 0x0, 0x1, 0x0, 0x74, 0x65, 0x73, 0x74, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x0, 0x0, 0x0, 0x8, 0x0, 0x2, 0x0, 0x0, 0x0, 0x0, 0x0},
+		// batch end
+		{0x0, 0x0, 0x0, 0xa},
+	}
+	c := testDialWithWant(t, want)
 
 	table := c.AddTable(&nftables.Table{
 		Family: nftables.TableFamilyINet,
 		Name:   "testtable",
 	})
-	res, err := New("testset", c, table, nftables.TypeARPHRD)
+	res, err := New(c, table, "testset", nftables.TypeARPHRD)
 	assert.Error(t, err)
 	assert.Equal(t, Set{}, res)
+	c.Flush()
 }
 
 func TestNewV4Set(t *testing.T) {
@@ -57,7 +67,7 @@ func TestNewV4Set(t *testing.T) {
 		Family: nftables.TableFamilyINet,
 		Name:   "testtable",
 	})
-	res, err := New("testset", c, table, nftables.TypeIPAddr)
+	res, err := New(c, table, "testset", nftables.TypeIPAddr)
 	assert.Nil(t, err)
 
 	assert.True(t, res.Set.Counter)
@@ -65,6 +75,7 @@ func TestNewV4Set(t *testing.T) {
 	assert.Equal(t, "testset", res.Set.Name)
 	assert.Equal(t, "testtable", res.Set.Table.Name)
 	assert.Equal(t, nftables.TypeIPAddr, res.Set.KeyType)
+	c.Flush()
 }
 
 func TestNewV6Set(t *testing.T) {
@@ -97,7 +108,7 @@ func TestNewV6Set(t *testing.T) {
 		Family: nftables.TableFamilyINet,
 		Name:   "testtable",
 	})
-	res, err := New("testset", c, table, nftables.TypeIP6Addr)
+	res, err := New(c, table, "testset", nftables.TypeIP6Addr)
 	assert.Nil(t, err)
 
 	assert.True(t, res.Set.Counter)
@@ -105,6 +116,7 @@ func TestNewV6Set(t *testing.T) {
 	assert.Equal(t, "testset", res.Set.Name)
 	assert.Equal(t, "testtable", res.Set.Table.Name)
 	assert.Equal(t, nftables.TypeIP6Addr, res.Set.KeyType)
+	c.Flush()
 }
 
 func TestNewPortSet(t *testing.T) {
@@ -137,7 +149,7 @@ func TestNewPortSet(t *testing.T) {
 		Family: nftables.TableFamilyINet,
 		Name:   "testtable",
 	})
-	res, err := New("testset", c, table, nftables.TypeInetService)
+	res, err := New(c, table, "testset", nftables.TypeInetService)
 	assert.Nil(t, err)
 
 	assert.True(t, res.Set.Counter)
@@ -145,6 +157,7 @@ func TestNewPortSet(t *testing.T) {
 	assert.Equal(t, "testset", res.Set.Name)
 	assert.Equal(t, "testtable", res.Set.Table.Name)
 	assert.Equal(t, nftables.TypeInetService, res.Set.KeyType)
+	c.Flush()
 }
 
 func TestClearAndAddElements(t *testing.T) {
@@ -181,10 +194,20 @@ func TestClearAndAddElements(t *testing.T) {
 	assert.Nil(t, err)
 	err = set.ClearAndAddElements(c, []SetData{setData})
 	assert.Nil(t, err)
+	c.Flush()
 }
 
 func TestUpdateSetBadType(t *testing.T) {
-	c := testDialWithWant(t, [][]byte{})
+	want := [][]byte{
+		// batch begin
+		{0x0, 0x0, 0x0, 0xa},
+		// "0xe" == unix.NFT_MSG_DELSETELEM
+		{0x1, 0x0, 0x0, 0x0, 0xe, 0x0, 0x1, 0x0, 0x74, 0x65, 0x73, 0x74, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x0, 0x0, 0x0, 0xc, 0x0, 0x2, 0x0, 0x74, 0x65, 0x73, 0x74, 0x73, 0x65, 0x74, 0x0},
+		// batch end
+		{0x0, 0x0, 0x0, 0xa},
+	}
+
+	c := testDialWithWant(t, want)
 
 	nfTable := &nftables.Table{
 		Family: nftables.TableFamilyINet,
@@ -204,6 +227,7 @@ func TestUpdateSetBadType(t *testing.T) {
 	assert.Nil(t, err)
 	err = set.ClearAndAddElements(c, []SetData{setData})
 	assert.Error(t, err)
+	c.Flush()
 }
 
 func testDialWithWant(t *testing.T, want [][]byte) *nftables.Conn {
