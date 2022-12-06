@@ -7,6 +7,7 @@ package set
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/gaissmai/extnetip"
 	"github.com/google/nftables"
@@ -27,6 +28,10 @@ const (
 // Set represents an nftables a set on a given table
 type Set struct {
 	Set *nftables.Set
+	// SetData representation of each of the
+	// items currently in the set
+	CurrentSetData map[SetData]struct{}
+	Mu             *sync.Mutex
 }
 
 // Create a new set on a table with a given key type
@@ -94,22 +99,70 @@ func New(name string, c *nftables.Conn, table *nftables.Table, keyType nftables.
 
 	return Set{
 		Set: set,
+		Mu:  &sync.Mutex{},
 	}, nil
 }
 
 // Compares incoming set elements with existing set elements and adds/removes the differences
-func (s *Set) UpdateElements(c *nftables.Conn, newSetData []SetData) error {
-	// FIXME: we should be smarter about removing diffs from the sets
-	// we loose counters when we flush the whole set, etc
-	// ideally we'd collapse contiguous ranges, sort and delete beginning and ending intervals appropriately
-	// probably need to keep track of the previous []SetData to do that
-	// for now we flush the set because we always know it's correct
-	return fmt.Errorf("unimplemented")
+// First return value is true if the set was modified, false if there were no updates
+func (s *Set) UpdateElements(c *nftables.Conn, newSetData []SetData) (bool, error) {
+	s.Mu.Lock()
+	defer s.Mu.Unlock()
+
+	var modified bool
+
+	// If we haven't initialized CurrentSetData, don't need
+	// the update logic, can just add everything
+	if s.CurrentSetData == nil {
+		return true, s.ClearAndAddElements(c, newSetData)
+	}
+
+	addSetData, removeSetData := s.genSetDataDelta(newSetData)
+
+	// Deletes should always happen first, just in case an incoming setData
+	// value replaces a single port/ip with a range that includes that port/ip
+	if len(removeSetData) > 0 {
+		modified = true
+
+		removeElems, err := generateElements(s.Set.KeyType, removeSetData)
+		if err != nil {
+			return false, fmt.Errorf("generating set elements failed for %v: %v", s.Set.Name, err)
+		}
+
+		if err = c.SetDeleteElements(s.Set, removeElems); err != nil {
+			return false, fmt.Errorf("nftables delete set elements failed for %v: %v", s.Set.Name, err)
+		}
+
+		for _, elem := range removeSetData {
+			delete(s.CurrentSetData, elem)
+		}
+	}
+
+	if len(addSetData) > 0 {
+		modified = true
+
+		addElems, err := generateElements(s.Set.KeyType, addSetData)
+		if err != nil {
+			return false, fmt.Errorf("generating set elements failed for %v: %v", s.Set.Name, err)
+		}
+
+		if err = c.SetAddElements(s.Set, addElems); err != nil {
+			return false, fmt.Errorf("nftables add set elements failed for %v: %v", s.Set.Name, err)
+		}
+
+		for _, elem := range addSetData {
+			s.CurrentSetData[elem] = struct{}{}
+		}
+	}
+
+	return modified, nil
 }
 
 // Remove all elements from the set and then add a list of elements
 func (s *Set) ClearAndAddElements(c *nftables.Conn, newSetData []SetData) error {
 	c.FlushSet(s.Set)
+	// Clear/Initialize existing map
+	s.CurrentSetData = make(map[SetData]struct{})
 
 	newElems, err := generateElements(s.Set.KeyType, newSetData)
 	if err != nil {
@@ -119,6 +172,10 @@ func (s *Set) ClearAndAddElements(c *nftables.Conn, newSetData []SetData) error 
 	// add everything in newSetData to the set
 	if err := c.SetAddElements(s.Set, newElems); err != nil {
 		return fmt.Errorf("nftables add set elements failed for %v: %v", s.Set.Name, err)
+	}
+
+	for _, elem := range newSetData {
+		s.CurrentSetData[elem] = struct{}{}
 	}
 
 	return nil
@@ -255,4 +312,32 @@ func validateSetDataPorts(setData SetData) error {
 	} else {
 		return fmt.Errorf("invalid set data: %v", setData)
 	}
+}
+
+// genSetDataDelta generates the "delta" between the incoming and the
+// existing values in a Set.
+// This shouldn't be called unless you have exclusive access to the Set
+func (s *Set) genSetDataDelta(incoming []SetData) (add []SetData, remove []SetData) {
+	currentCopy := make(map[SetData]struct{})
+	for data := range s.CurrentSetData {
+		currentCopy[data] = struct{}{}
+	}
+
+	for _, data := range incoming {
+		if _, exists := s.CurrentSetData[data]; !exists {
+			add = append(add, data)
+		} else {
+			// removing an element from the copy indicates
+			// we've seen it in the incoming set data
+			delete(currentCopy, data)
+		}
+	}
+
+	// anything left in currentCopy didn't exist in the
+	// incoming set data so it should be deleted
+	for data := range currentCopy {
+		remove = append(remove, data)
+	}
+
+	return
 }
