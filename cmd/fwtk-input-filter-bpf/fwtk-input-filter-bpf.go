@@ -85,8 +85,9 @@ func main() {
 		logger.Default.Fatal(err)
 	}
 
+	ruleTarget := rule.NewRuleTarget(nfTable, nfChain)
 	bpfRule := rule.NewRuleData([]byte{0xd, 0xe, 0xa, 0xd}, expressions.MatchBpfWithVerdict(xtBpfInfoBytes, nfVerdict))
-	added, err := rule.Add(c, nfTable, nfChain, bpfRule)
+	added, err := ruleTarget.Add(c, bpfRule)
 	if err != nil {
 		logger.Default.Fatalf("adding rule %x failed: %v", bpfRule.ID, err)
 	}

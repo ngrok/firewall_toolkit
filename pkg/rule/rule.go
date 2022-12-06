@@ -11,9 +11,23 @@ import (
 	"github.com/google/nftables"
 )
 
+// RuleTarget represents a location to manipulate nftables rules
+type RuleTarget struct {
+	Table *nftables.Table
+	Chain *nftables.Chain
+}
+
+// Create a new location to manipulate nftables rules
+func NewRuleTarget(table *nftables.Table, chain *nftables.Chain) RuleTarget {
+	return RuleTarget{
+		Table: table,
+		Chain: chain,
+	}
+}
+
 // Add a rule with a given ID to a specific table and chain, returns true if the rule was added
-func Add(c *nftables.Conn, table *nftables.Table, chain *nftables.Chain, ruleData RuleData) (bool, error) {
-	exists, err := Exists(c, table, chain, ruleData)
+func (r *RuleTarget) Add(c *nftables.Conn, ruleData RuleData) (bool, error) {
+	exists, err := r.Exists(c, ruleData)
 	if err != nil {
 		return false, err
 	}
@@ -22,7 +36,7 @@ func Add(c *nftables.Conn, table *nftables.Table, chain *nftables.Chain, ruleDat
 		return false, nil
 	}
 
-	add(c, table, chain, ruleData)
+	add(c, r.Table, r.Chain, ruleData)
 	return true, nil
 }
 
@@ -36,8 +50,8 @@ func add(c *nftables.Conn, table *nftables.Table, chain *nftables.Chain, ruleDat
 }
 
 // Delete a rule with a given ID from a specific table and chain, returns true if the rule was deleted
-func Delete(c *nftables.Conn, table *nftables.Table, chain *nftables.Chain, ruleData RuleData) (bool, error) {
-	rules, err := c.GetRules(table, chain)
+func (r *RuleTarget) Delete(c *nftables.Conn, ruleData RuleData) (bool, error) {
+	rules, err := c.GetRules(r.Table, r.Chain)
 	if err != nil {
 		return false, err
 	}
@@ -57,8 +71,8 @@ func Delete(c *nftables.Conn, table *nftables.Table, chain *nftables.Chain, rule
 }
 
 // Determine if a rule with a given ID exists in a specific table and chain
-func Exists(c *nftables.Conn, table *nftables.Table, chain *nftables.Chain, ruleData RuleData) (bool, error) {
-	rules, err := c.GetRules(table, chain)
+func (r *RuleTarget) Exists(c *nftables.Conn, ruleData RuleData) (bool, error) {
+	rules, err := c.GetRules(r.Table, r.Chain)
 	if err != nil {
 		return false, err
 	}

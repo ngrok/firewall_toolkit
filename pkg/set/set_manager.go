@@ -20,14 +20,14 @@ type SetUpdateFunc func() ([]SetData, error)
 type ManagedSet struct {
 	WaitGroup     *sync.WaitGroup
 	Conn          *nftables.Conn
-	Set           *Set
+	Set           Set
 	setUpdateFunc SetUpdateFunc
 	interval      time.Duration
 	logger        logger.Logger
 }
 
 // Create a set manager
-func ManagerInit(wg *sync.WaitGroup, c *nftables.Conn, set *Set, f SetUpdateFunc, interval time.Duration, logger logger.Logger) (ManagedSet, error) {
+func ManagerInit(wg *sync.WaitGroup, c *nftables.Conn, set Set, f SetUpdateFunc, interval time.Duration, logger logger.Logger) (ManagedSet, error) {
 	return ManagedSet{
 		WaitGroup:     wg,
 		Conn:          c,
@@ -40,7 +40,7 @@ func ManagerInit(wg *sync.WaitGroup, c *nftables.Conn, set *Set, f SetUpdateFunc
 
 // Start the set manager goroutine
 func (s *ManagedSet) Start() {
-	s.logger.Infof("starting set manager fortable/set %v/%v", s.Set.Set.Table.Name, s.Set.Set.Name)
+	s.logger.Infof("starting set manager for table/set %v/%v", s.Set.Set.Table.Name, s.Set.Set.Name)
 	defer s.WaitGroup.Done()
 
 	sigChan := make(chan os.Signal, 1)

@@ -86,17 +86,17 @@ func main() {
 	}
 
 	// create all the sets you plan to use
-	ipv4Set, err := set.New("ipv4_blocklist", c, nfTable, nftables.TypeIPAddr)
+	ipv4Set, err := set.New(c, nfTable, "ipv4_blocklist", nftables.TypeIPAddr)
 	if err != nil {
 		logger.Default.Fatalf("new set failed %v", err)
 	}
 
-	ipv6Set, err := set.New("ipv6_blocklist", c, nfTable, nftables.TypeIP6Addr)
+	ipv6Set, err := set.New(c, nfTable, "ipv6_blocklist", nftables.TypeIP6Addr)
 	if err != nil {
 		logger.Default.Fatalf("new set failed %v", err)
 	}
 
-	portSet, err := set.New("port_blocklist", c, nfTable, nftables.TypeInetService)
+	portSet, err := set.New(c, nfTable, "port_blocklist", nftables.TypeInetService)
 	if err != nil {
 		logger.Default.Fatalf("new set failed %v", err)
 	}
@@ -131,6 +131,8 @@ func main() {
 		logger.Default.Fatalf("add elements flush failed: %v", err)
 	}
 
+	ruleTarget := rule.NewRuleTarget(nfTable, nfChain)
+
 	ruleInfo := newRuleInfo(portSet, ipv4Set, ipv6Set)
 
 	ruleData, err := ruleInfo.createRuleData()
@@ -140,7 +142,7 @@ func main() {
 
 	flush := false
 	for _, rD := range ruleData {
-		added, err := rule.Add(c, nfTable, nfChain, rD)
+		added, err := ruleTarget.Add(c, rD)
 		if err != nil {
 			logger.Default.Fatalf("adding rule %x failed: %v", rD.ID, err)
 		}
@@ -167,7 +169,7 @@ func main() {
 		ipv4SetManager, err := set.ManagerInit(
 			&wg,
 			c,
-			&ipv4Set,
+			ipv4Set,
 			ipSource.getIPList,
 			RefreshInterval,
 			logger.Default,
@@ -180,7 +182,7 @@ func main() {
 		ipv6SetManager, err := set.ManagerInit(
 			&wg,
 			c,
-			&ipv6Set,
+			ipv6Set,
 			ipSource.getIPList,
 			RefreshInterval,
 			logger.Default,
@@ -193,7 +195,7 @@ func main() {
 		portSetManager, err := set.ManagerInit(
 			&wg,
 			c,
-			&portSet,
+			portSet,
 			portSource.getPortList,
 			RefreshInterval,
 			logger.Default,
@@ -206,8 +208,7 @@ func main() {
 		ruleManager, err := rule.ManagerInit(
 			&wg,
 			c,
-			nfTable,
-			nfChain,
+			ruleTarget,
 			ruleInfo.createRuleData,
 			RefreshInterval,
 			logger.Default,
