@@ -92,3 +92,44 @@ func TestFindRuleByID(t *testing.T) {
 	ruleBad := findRuleByID([]byte{0x5}, rules)
 	assert.Equal(t, ruleBad, &nftables.Rule{})
 }
+
+func TestGenRuleDelta(t *testing.T) {
+	tests := []struct {
+		current    []*nftables.Rule
+		incoming   []RuleData
+		wantAdd    []RuleData
+		wantRemove []*nftables.Rule
+	}{
+		{
+			[]*nftables.Rule{{UserData: []byte{0xc, 0xa, 0xf, 0xe}}},
+			[]RuleData{{ID: []byte{0xc, 0xa, 0xf, 0xe}}, {ID: []byte{0xb, 0xe, 0xe, 0xf}}},
+			[]RuleData{{ID: []byte{0xb, 0xe, 0xe, 0xf}}},
+			[]*nftables.Rule{},
+		},
+		{
+			[]*nftables.Rule{},
+			[]RuleData{{ID: []byte{0xc, 0xa, 0xf, 0xe}}, {ID: []byte{0xb, 0xe, 0xe, 0xf}}},
+			[]RuleData{{ID: []byte{0xc, 0xa, 0xf, 0xe}}, {ID: []byte{0xb, 0xe, 0xe, 0xf}}},
+			[]*nftables.Rule{},
+		},
+		{
+			[]*nftables.Rule{{UserData: []byte{0xc, 0xa, 0xf, 0xe}}, {UserData: []byte{0xb, 0xe, 0xe, 0xf}}},
+			[]RuleData{},
+			[]RuleData{},
+			[]*nftables.Rule{{UserData: []byte{0xc, 0xa, 0xf, 0xe}}, {UserData: []byte{0xb, 0xe, 0xe, 0xf}}},
+		},
+		{
+			[]*nftables.Rule{{UserData: []byte{0xc, 0xa, 0xf, 0xe}}, {UserData: []byte{0xb, 0xe, 0xe, 0xf}}},
+			[]RuleData{{ID: []byte{0xd, 0xe, 0xa, 0xd}}},
+			[]RuleData{{ID: []byte{0xd, 0xe, 0xa, 0xd}}},
+			[]*nftables.Rule{{UserData: []byte{0xc, 0xa, 0xf, 0xe}}, {UserData: []byte{0xb, 0xe, 0xe, 0xf}}},
+		},
+	}
+
+	for _, test := range tests {
+		add, remove := genRuleDelta(test.current, test.incoming)
+		assert.ElementsMatch(t, add, test.wantAdd)
+		assert.ElementsMatch(t, remove, test.wantRemove)
+	}
+
+}

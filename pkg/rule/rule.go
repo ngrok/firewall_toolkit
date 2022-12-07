@@ -7,6 +7,7 @@ package rule
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/google/nftables"
 )
@@ -85,6 +86,56 @@ func (r *RuleTarget) Exists(c *nftables.Conn, ruleData RuleData) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (r *RuleTarget) Update(c *nftables.Conn, rules []RuleData) (bool, error) {
+	var modified bool
+	existingRules, err := c.GetRules(r.Table, r.Chain)
+	if err != nil {
+		return false, fmt.Errorf("error getting existing rules for update: %v", err)
+	}
+
+	addRDList, removeRDList := genRuleDelta(existingRules, rules)
+
+	if len(removeRDList) > 0 {
+		for _, rule := range removeRDList {
+			err := c.DelRule(rule)
+			if err != nil {
+				return false, err
+			}
+			modified = true
+		}
+	}
+
+	if len(addRDList) > 0 {
+		for _, rule := range addRDList {
+			add(c, r.Table, r.Chain, rule)
+			modified = true
+		}
+	}
+
+	return modified, nil
+}
+
+func genRuleDelta(existingRules []*nftables.Rule, newRules []RuleData) (add []RuleData, remove []*nftables.Rule) {
+	existingRuleMap := make(map[string]*nftables.Rule)
+	for _, existingRule := range existingRules {
+		existingRuleMap[string(existingRule.UserData)] = existingRule
+	}
+
+	for _, ruleData := range newRules {
+		if _, exists := existingRuleMap[string(ruleData.ID)]; !exists {
+			add = append(add, ruleData)
+		} else {
+			delete(existingRuleMap, string(ruleData.ID))
+		}
+	}
+
+	for _, v := range existingRuleMap {
+		remove = append(remove, v)
+	}
+
+	return
 }
 
 func findRuleByID(id []byte, rules []*nftables.Rule) *nftables.Rule {
