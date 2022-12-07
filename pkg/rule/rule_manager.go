@@ -55,36 +55,19 @@ func (r *ManagedRules) Start() {
 			case <-done:
 				return
 			case <-ticker.C:
-				flush := true
-				addCount := 0
-
 				ruleData, err := r.rulesUpdateFunc()
 				if err != nil {
 					r.logger.Errorf("error with rules update function for table/chain %v/%v: %v", r.RuleTarget.Table.Name, r.RuleTarget.Chain.Name, err)
-					flush = false
 				}
 
-				for _, rD := range ruleData {
-					added, err := r.RuleTarget.Add(r.Conn, rD)
-					if err != nil {
-						r.logger.Errorf("error adding rule %x for table/chain %v/%v: %v", rD.ID, r.RuleTarget.Table.Name, r.RuleTarget.Chain.Name, err)
-						flush = false
-					}
-
-					if added {
-						r.logger.Infof("added rule %x for table/chain %v/%v", rD.ID, r.RuleTarget.Table.Name, r.RuleTarget.Chain.Name)
-						addCount++
-					}
-				}
-
-				// dont flush if we didn't do anyhting
-				if addCount == 0 {
-					flush = false
+				flush, err := r.RuleTarget.Update(r.Conn, ruleData)
+				if err != nil {
+					r.logger.Errorf("error updating rules: %v", err)
 				}
 
 				// only flush if things went well above
 				if flush {
-					r.logger.Infof("flushing %v rules for table/chain %v/%v", addCount, r.RuleTarget.Table.Name, r.RuleTarget.Chain.Name)
+					r.logger.Infof("flushing rules for table/chain %v/%v", r.RuleTarget.Table.Name, r.RuleTarget.Chain.Name)
 					if err := r.Conn.Flush(); err != nil {
 						r.logger.Errorf("error flushing rules for table/chain %v/%v: %v", r.RuleTarget.Table.Name, r.RuleTarget.Chain.Name, err)
 					}
