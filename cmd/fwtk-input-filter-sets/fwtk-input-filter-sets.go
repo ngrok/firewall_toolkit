@@ -23,13 +23,14 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"flag"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/google/nftables"
 	"github.com/google/nftables/expr"
+	"golang.org/x/sync/errgroup"
 	"golang.org/x/sys/unix"
 
 	"github.com/ngrok/firewall_toolkit/pkg/expressions"
@@ -163,11 +164,11 @@ func main() {
 
 	// manager mode will keep running refreshing sets based on what's in the files
 	if *mode == "manager" {
-		var wg sync.WaitGroup
-		wg.Add(4)
+		ctx, cancel := context.WithCancel(context.Background())
+		eg, gctx := errgroup.WithContext(ctx)
+		defer cancel()
 
 		ipv4SetManager, err := set.ManagerInit(
-			&wg,
 			c,
 			ipv4Set,
 			ipSource.getIPList,
@@ -180,7 +181,6 @@ func main() {
 		}
 
 		ipv6SetManager, err := set.ManagerInit(
-			&wg,
 			c,
 			ipv6Set,
 			ipSource.getIPList,
@@ -193,7 +193,6 @@ func main() {
 		}
 
 		portSetManager, err := set.ManagerInit(
-			&wg,
 			c,
 			portSet,
 			portSource.getPortList,
@@ -206,7 +205,6 @@ func main() {
 		}
 
 		ruleManager, err := rule.ManagerInit(
-			&wg,
 			c,
 			ruleTarget,
 			ruleInfo.createRuleData,
@@ -218,12 +216,25 @@ func main() {
 			logger.Default.Fatal(err)
 		}
 
-		go ipv4SetManager.Start()
-		go ipv6SetManager.Start()
-		go portSetManager.Start()
-		go ruleManager.Start()
+		eg.Go(func() error {
+			return ipv4SetManager.Start(gctx)
+		})
 
-		wg.Wait()
+		eg.Go(func() error {
+			return ipv6SetManager.Start(gctx)
+		})
+
+		eg.Go(func() error {
+			return portSetManager.Start(gctx)
+		})
+
+		eg.Go(func() error {
+			return ruleManager.Start(gctx)
+		})
+
+		if err := eg.Wait(); err != nil {
+			logger.Default.Fatal(err)
+		}
 	}
 }
 
