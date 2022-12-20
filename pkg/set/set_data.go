@@ -148,7 +148,7 @@ func PortStringsToSetData(portStrings []string) ([]SetData, error) {
 }
 
 // Convert net.IPNet to the SetData type
-func IPNetToSetData(net *net.IPNet) (SetData, error) {
+func NetIPNetToSetData(net *net.IPNet) (SetData, error) {
 	ones, _ := net.Mask.Size()
 	ip, ok := netip.AddrFromSlice(net.IP)
 
@@ -160,11 +160,11 @@ func IPNetToSetData(net *net.IPNet) (SetData, error) {
 }
 
 // Convert a list of net.IPNet to the SetData type
-func IPNetsToSetData(nets []*net.IPNet) ([]SetData, error) {
+func NetIPNetsToSetData(nets []*net.IPNet) ([]SetData, error) {
 	data := []SetData{}
 
 	for _, net := range nets {
-		prefix, err := IPNetToSetData(net)
+		prefix, err := NetIPNetToSetData(net)
 		if err != nil {
 			return data, err
 		}
@@ -175,7 +175,7 @@ func IPNetsToSetData(nets []*net.IPNet) ([]SetData, error) {
 }
 
 // Convert net.IP to the SetData type
-func IPToSetData(ip net.IP) (SetData, error) {
+func NetIPToSetData(ip net.IP) (SetData, error) {
 	netip, ok := netip.AddrFromSlice(ip)
 	if !ok {
 		return SetData{}, fmt.Errorf("could not parse ip: %v", ip)
@@ -185,11 +185,11 @@ func IPToSetData(ip net.IP) (SetData, error) {
 }
 
 // Convert a list of net.IP to the SetData type
-func IPsToSetData(ips []net.IP) ([]SetData, error) {
+func NetIPsToSetData(ips []net.IP) ([]SetData, error) {
 	data := []SetData{}
 
 	for _, ip := range ips {
-		netip, err := IPToSetData(ip)
+		netip, err := NetIPToSetData(ip)
 		if err != nil {
 			return data, err
 		}
@@ -197,4 +197,66 @@ func IPsToSetData(ips []net.IP) ([]SetData, error) {
 	}
 
 	return data, nil
+}
+
+// Convert a list of netip.Addr to SetData type
+func NetipAddrsToSetData(ips []netip.Addr) ([]SetData, error) {
+	data := []SetData{}
+
+	for _, ip := range ips {
+		netip, err := NetipAddrToSetData(ip)
+		if err != nil {
+			return data, err
+		}
+		data = append(data, netip)
+	}
+
+	return data, nil
+}
+
+// Convert netip.Addr to SetData type
+func NetipAddrToSetData(ip netip.Addr) (SetData, error) {
+	return SetData{Address: ip}, nil
+}
+
+// Convert a list of netip.Prefix to SetData type
+func NetipPrefixesToSetData(prefixes []netip.Prefix) ([]SetData, error) {
+	data := []SetData{}
+
+	for _, prefix := range prefixes {
+		netip, err := NetipPrefixToSetData(prefix)
+		if err != nil {
+			return data, err
+		}
+		data = append(data, netip)
+	}
+
+	return data, nil
+}
+
+// Convert netip.Prefix to SetData type
+func NetipPrefixToSetData(prefix netip.Prefix) (SetData, error) {
+	return SetData{Prefix: prefix}, nil
+}
+
+// Convert a list of netip.AddrPort to SetData type, returns a list of addresses and a list of ports
+func NetipAddrPortsToSetData(addrports []netip.AddrPort) ([]SetData, []SetData, error) {
+	addrs := []SetData{}
+	ports := []SetData{}
+
+	for _, addrport := range addrports {
+		addr, port, err := NetipAddrPortToSetData(addrport)
+		if err != nil {
+			return addrs, ports, err
+		}
+		addrs = append(addrs, addr)
+		ports = append(ports, port)
+	}
+
+	return addrs, ports, nil
+}
+
+// Convert netip.AddrPort to SetData type, returns a address and a port
+func NetipAddrPortToSetData(addrport netip.AddrPort) (SetData, SetData, error) {
+	return SetData{Address: addrport.Addr()}, SetData{Port: int(addrport.Port())}, nil
 }
