@@ -89,7 +89,7 @@ func TestBadIPNetList(t *testing.T) {
 	one := net.IPNet{}
 	bad := []*net.IPNet{&one}
 
-	res, err := IPNetsToSetData(bad)
+	res, err := NetIPNetsToSetData(bad)
 	assert.Error(t, err)
 	assert.Equal(t, []SetData{}, res)
 }
@@ -98,7 +98,7 @@ func TestBadIPList(t *testing.T) {
 	one := net.IP{}
 	bad := []net.IP{one}
 
-	res, err := IPsToSetData(bad)
+	res, err := NetIPsToSetData(bad)
 	assert.Error(t, err)
 	assert.Equal(t, []SetData{}, res)
 }
@@ -141,7 +141,7 @@ func TestGoodIPNetList(t *testing.T) {
 		two,
 	}
 
-	res, err := IPNetsToSetData(good)
+	res, err := NetIPNetsToSetData(good)
 	assert.Nil(t, err)
 	assert.Equal(t, len(good), len(res))
 }
@@ -155,7 +155,7 @@ func TestGoodIPList(t *testing.T) {
 		two,
 	}
 
-	res, err := IPsToSetData(good)
+	res, err := NetIPsToSetData(good)
 	assert.Nil(t, err)
 	assert.Equal(t, len(good), len(res))
 }
@@ -245,4 +245,32 @@ func TestGoodPortRange(t *testing.T) {
 
 	assert.Equal(t, res.PortRangeStart, parsedOne)
 	assert.Equal(t, res.PortRangeEnd, parsedTwo)
+}
+
+func TestGoodNetipAddressesV4(t *testing.T) {
+	one := "203.0.113.100"
+	parsed := netip.MustParseAddr(one)
+	list := []netip.Addr{parsed}
+	res, err := NetipAddrsToSetData(list)
+	assert.Nil(t, err)
+	assert.Equal(t, res[0].Address, parsed)
+}
+
+func TestGoodNetipPrefixesV4(t *testing.T) {
+	one := "203.0.113.100/22"
+	parsed := netip.MustParsePrefix(one)
+	list := []netip.Prefix{parsed}
+	res, err := NetipPrefixesToSetData(list)
+	assert.Nil(t, err)
+	assert.Equal(t, res[0].Prefix, parsed)
+}
+
+func TestGoodNetipAddrPortsV4(t *testing.T) {
+	one := "203.0.113.100:8080"
+	parsed := netip.MustParseAddrPort(one)
+	list := []netip.AddrPort{parsed}
+	addrs, ports, err := NetipAddrPortsToSetData(list)
+	assert.Nil(t, err)
+	assert.Equal(t, addrs[0].Address, parsed.Addr())
+	assert.Equal(t, ports[0].Port, int(parsed.Port()))
 }
