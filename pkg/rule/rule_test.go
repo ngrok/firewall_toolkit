@@ -133,3 +133,44 @@ func TestGenRuleDelta(t *testing.T) {
 	}
 
 }
+
+func TestGetRuleTarget(t *testing.T) {
+	table := &nftables.Table{
+		Family: nftables.TableFamilyINet,
+		Name:   "testtable",
+	}
+
+	chain := &nftables.Chain{
+		Table: table,
+		Name:  "testchain",
+	}
+
+	ruleTarget := NewRuleTarget(table, chain)
+
+	rtTable, rtChain := ruleTarget.GetTableAndChain()
+
+	assert.Equal(t, table, rtTable)
+	assert.Equal(t, chain, rtChain)
+}
+
+func TestManagerGetRuleTarget(t *testing.T) {
+	table := &nftables.Table{
+		Family: nftables.TableFamilyINet,
+		Name:   "testtable",
+	}
+
+	chain := &nftables.Chain{
+		Table: table,
+		Name:  "testchain",
+	}
+
+	mR := ManagedRules{
+		ruleTarget: NewRuleTarget(table, chain),
+	}
+
+	rt := mR.GetRuleTarget()
+	rtTable, rtChain := rt.GetTableAndChain()
+
+	assert.Equal(t, table, rtTable)
+	assert.Equal(t, chain, rtChain)
+}

@@ -119,7 +119,7 @@ func (r *RuleTarget) Update(c *nftables.Conn, rules []RuleData) (bool, error) {
 }
 
 // Get the nftables table and chain associated with this RuleTarget
-func (r *RuleTarget) GetRuleTarget() (*nftables.Table, *nftables.Chain) {
+func (r *RuleTarget) GetTableAndChain() (*nftables.Table, *nftables.Chain) {
 	return r.table, r.chain
 }
 

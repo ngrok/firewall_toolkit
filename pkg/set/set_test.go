@@ -584,3 +584,37 @@ func TestUpdateElements(t *testing.T) {
 	assert.Nil(t, err)
 	c.Flush()
 }
+
+func TestGetSet(t *testing.T) {
+	nfSet := &nftables.Set{
+		Name:     "testset",
+		Table:    &nftables.Table{},
+		KeyType:  nftables.TypeIPAddr,
+		Interval: true,
+		Counter:  true,
+	}
+
+	set := Set{set: nfSet}
+
+	assert.Equal(t, nfSet, set.GetSet())
+}
+
+func TestManagerGetSet(t *testing.T) {
+	nfSet := &nftables.Set{
+		Name:     "testset",
+		Table:    &nftables.Table{},
+		KeyType:  nftables.TypeIPAddr,
+		Interval: true,
+		Counter:  true,
+	}
+
+	set := Set{set: nfSet}
+
+	mS := ManagedSet{
+		set: set,
+	}
+
+	mSet := mS.GetSet()
+
+	assert.Equal(t, nfSet, mSet.GetSet())
+}
