@@ -14,15 +14,15 @@ import (
 
 // RuleTarget represents a location to manipulate nftables rules
 type RuleTarget struct {
-	Table *nftables.Table
-	Chain *nftables.Chain
+	table *nftables.Table
+	chain *nftables.Chain
 }
 
 // Create a new location to manipulate nftables rules
 func NewRuleTarget(table *nftables.Table, chain *nftables.Chain) RuleTarget {
 	return RuleTarget{
-		Table: table,
-		Chain: chain,
+		table: table,
+		chain: chain,
 	}
 }
 
@@ -37,7 +37,7 @@ func (r *RuleTarget) Add(c *nftables.Conn, ruleData RuleData) (bool, error) {
 		return false, nil
 	}
 
-	add(c, r.Table, r.Chain, ruleData)
+	add(c, r.table, r.chain, ruleData)
 	return true, nil
 }
 
@@ -52,7 +52,7 @@ func add(c *nftables.Conn, table *nftables.Table, chain *nftables.Chain, ruleDat
 
 // Delete a rule with a given ID from a specific table and chain, returns true if the rule was deleted
 func (r *RuleTarget) Delete(c *nftables.Conn, ruleData RuleData) (bool, error) {
-	rules, err := c.GetRules(r.Table, r.Chain)
+	rules, err := c.GetRules(r.table, r.chain)
 	if err != nil {
 		return false, err
 	}
@@ -73,7 +73,7 @@ func (r *RuleTarget) Delete(c *nftables.Conn, ruleData RuleData) (bool, error) {
 
 // Determine if a rule with a given ID exists in a specific table and chain
 func (r *RuleTarget) Exists(c *nftables.Conn, ruleData RuleData) (bool, error) {
-	rules, err := c.GetRules(r.Table, r.Chain)
+	rules, err := c.GetRules(r.table, r.chain)
 	if err != nil {
 		return false, err
 	}
@@ -88,9 +88,10 @@ func (r *RuleTarget) Exists(c *nftables.Conn, ruleData RuleData) (bool, error) {
 	return true, nil
 }
 
+// Compare existing and incoming rule IDs adding/removing the difference
 func (r *RuleTarget) Update(c *nftables.Conn, rules []RuleData) (bool, error) {
 	var modified bool
-	existingRules, err := c.GetRules(r.Table, r.Chain)
+	existingRules, err := c.GetRules(r.table, r.chain)
 	if err != nil {
 		return false, fmt.Errorf("error getting existing rules for update: %v", err)
 	}
@@ -109,12 +110,17 @@ func (r *RuleTarget) Update(c *nftables.Conn, rules []RuleData) (bool, error) {
 
 	if len(addRDList) > 0 {
 		for _, rule := range addRDList {
-			add(c, r.Table, r.Chain, rule)
+			add(c, r.table, r.chain, rule)
 			modified = true
 		}
 	}
 
 	return modified, nil
+}
+
+// Get the nftables table and chain associated with this RuleTarget
+func (r *RuleTarget) GetRuleTarget() (*nftables.Table, *nftables.Chain) {
+	return r.table, r.chain
 }
 
 func genRuleDelta(existingRules []*nftables.Rule, newRules []RuleData) (add []RuleData, remove []*nftables.Rule) {

@@ -27,11 +27,11 @@ const (
 
 // Set represents an nftables a set on a given table
 type Set struct {
-	Set *nftables.Set
+	set *nftables.Set
 	// SetData representation of each of the
 	// items currently in the set
-	CurrentSetData map[SetData]struct{}
-	Mu             *sync.Mutex
+	currentSetData map[SetData]struct{}
+	mu             *sync.Mutex
 }
 
 // Create a new set on a table with a given key type
@@ -98,22 +98,22 @@ func New(c *nftables.Conn, table *nftables.Table, name string, keyType nftables.
 	}
 
 	return Set{
-		Set: set,
-		Mu:  &sync.Mutex{},
+		set: set,
+		mu:  &sync.Mutex{},
 	}, nil
 }
 
 // Compares incoming set elements with existing set elements and adds/removes the differences
 // First return value is true if the set was modified, false if there were no updates
 func (s *Set) UpdateElements(c *nftables.Conn, newSetData []SetData) (bool, error) {
-	s.Mu.Lock()
-	defer s.Mu.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	var modified bool
 
 	// If we haven't initialized CurrentSetData, don't need
 	// the update logic, can just add everything
-	if s.CurrentSetData == nil {
+	if s.currentSetData == nil {
 		return true, s.ClearAndAddElements(c, newSetData)
 	}
 
@@ -124,34 +124,34 @@ func (s *Set) UpdateElements(c *nftables.Conn, newSetData []SetData) (bool, erro
 	if len(removeSetData) > 0 {
 		modified = true
 
-		removeElems, err := generateElements(s.Set.KeyType, removeSetData)
+		removeElems, err := generateElements(s.set.KeyType, removeSetData)
 		if err != nil {
-			return false, fmt.Errorf("generating set elements failed for %v: %v", s.Set.Name, err)
+			return false, fmt.Errorf("generating set elements failed for %v: %v", s.set.Name, err)
 		}
 
-		if err = c.SetDeleteElements(s.Set, removeElems); err != nil {
-			return false, fmt.Errorf("nftables delete set elements failed for %v: %v", s.Set.Name, err)
+		if err = c.SetDeleteElements(s.set, removeElems); err != nil {
+			return false, fmt.Errorf("nftables delete set elements failed for %v: %v", s.set.Name, err)
 		}
 
 		for _, elem := range removeSetData {
-			delete(s.CurrentSetData, elem)
+			delete(s.currentSetData, elem)
 		}
 	}
 
 	if len(addSetData) > 0 {
 		modified = true
 
-		addElems, err := generateElements(s.Set.KeyType, addSetData)
+		addElems, err := generateElements(s.set.KeyType, addSetData)
 		if err != nil {
-			return false, fmt.Errorf("generating set elements failed for %v: %v", s.Set.Name, err)
+			return false, fmt.Errorf("generating set elements failed for %v: %v", s.set.Name, err)
 		}
 
-		if err = c.SetAddElements(s.Set, addElems); err != nil {
-			return false, fmt.Errorf("nftables add set elements failed for %v: %v", s.Set.Name, err)
+		if err = c.SetAddElements(s.set, addElems); err != nil {
+			return false, fmt.Errorf("nftables add set elements failed for %v: %v", s.set.Name, err)
 		}
 
 		for _, elem := range addSetData {
-			s.CurrentSetData[elem] = struct{}{}
+			s.currentSetData[elem] = struct{}{}
 		}
 	}
 
@@ -160,25 +160,30 @@ func (s *Set) UpdateElements(c *nftables.Conn, newSetData []SetData) (bool, erro
 
 // Remove all elements from the set and then add a list of elements
 func (s *Set) ClearAndAddElements(c *nftables.Conn, newSetData []SetData) error {
-	c.FlushSet(s.Set)
+	c.FlushSet(s.set)
 	// Clear/Initialize existing map
-	s.CurrentSetData = make(map[SetData]struct{})
+	s.currentSetData = make(map[SetData]struct{})
 
-	newElems, err := generateElements(s.Set.KeyType, newSetData)
+	newElems, err := generateElements(s.set.KeyType, newSetData)
 	if err != nil {
-		return fmt.Errorf("generating set elements failed for %v: %v", s.Set.Name, err)
+		return fmt.Errorf("generating set elements failed for %v: %v", s.set.Name, err)
 	}
 
 	// add everything in newSetData to the set
-	if err := c.SetAddElements(s.Set, newElems); err != nil {
-		return fmt.Errorf("nftables add set elements failed for %v: %v", s.Set.Name, err)
+	if err := c.SetAddElements(s.set, newElems); err != nil {
+		return fmt.Errorf("nftables add set elements failed for %v: %v", s.set.Name, err)
 	}
 
 	for _, elem := range newSetData {
-		s.CurrentSetData[elem] = struct{}{}
+		s.currentSetData[elem] = struct{}{}
 	}
 
 	return nil
+}
+
+// Get the nftables set associated with this Set
+func (s *Set) GetSet() *nftables.Set {
+	return s.set
 }
 
 func generateElements(keyType nftables.SetDatatype, list []SetData) ([]nftables.SetElement, error) {
@@ -319,12 +324,12 @@ func validateSetDataPorts(setData SetData) error {
 // This shouldn't be called unless you have exclusive access to the Set
 func (s *Set) genSetDataDelta(incoming []SetData) (add []SetData, remove []SetData) {
 	currentCopy := make(map[SetData]struct{})
-	for data := range s.CurrentSetData {
+	for data := range s.currentSetData {
 		currentCopy[data] = struct{}{}
 	}
 
 	for _, data := range incoming {
-		if _, exists := s.CurrentSetData[data]; !exists {
+		if _, exists := s.currentSetData[data]; !exists {
 			add = append(add, data)
 		} else {
 			// removing an element from the copy indicates

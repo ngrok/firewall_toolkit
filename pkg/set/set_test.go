@@ -70,11 +70,11 @@ func TestNewV4Set(t *testing.T) {
 	res, err := New(c, table, "testset", nftables.TypeIPAddr)
 	assert.Nil(t, err)
 
-	assert.True(t, res.Set.Counter)
-	assert.True(t, res.Set.Interval)
-	assert.Equal(t, "testset", res.Set.Name)
-	assert.Equal(t, "testtable", res.Set.Table.Name)
-	assert.Equal(t, nftables.TypeIPAddr, res.Set.KeyType)
+	assert.True(t, res.set.Counter)
+	assert.True(t, res.set.Interval)
+	assert.Equal(t, "testset", res.set.Name)
+	assert.Equal(t, "testtable", res.set.Table.Name)
+	assert.Equal(t, nftables.TypeIPAddr, res.set.KeyType)
 	c.Flush()
 }
 
@@ -111,11 +111,11 @@ func TestNewV6Set(t *testing.T) {
 	res, err := New(c, table, "testset", nftables.TypeIP6Addr)
 	assert.Nil(t, err)
 
-	assert.True(t, res.Set.Counter)
-	assert.True(t, res.Set.Interval)
-	assert.Equal(t, "testset", res.Set.Name)
-	assert.Equal(t, "testtable", res.Set.Table.Name)
-	assert.Equal(t, nftables.TypeIP6Addr, res.Set.KeyType)
+	assert.True(t, res.set.Counter)
+	assert.True(t, res.set.Interval)
+	assert.Equal(t, "testset", res.set.Name)
+	assert.Equal(t, "testtable", res.set.Table.Name)
+	assert.Equal(t, nftables.TypeIP6Addr, res.set.KeyType)
 	c.Flush()
 }
 
@@ -152,11 +152,11 @@ func TestNewPortSet(t *testing.T) {
 	res, err := New(c, table, "testset", nftables.TypeInetService)
 	assert.Nil(t, err)
 
-	assert.True(t, res.Set.Counter)
-	assert.True(t, res.Set.Interval)
-	assert.Equal(t, "testset", res.Set.Name)
-	assert.Equal(t, "testtable", res.Set.Table.Name)
-	assert.Equal(t, nftables.TypeInetService, res.Set.KeyType)
+	assert.True(t, res.set.Counter)
+	assert.True(t, res.set.Interval)
+	assert.Equal(t, "testset", res.set.Name)
+	assert.Equal(t, "testtable", res.set.Table.Name)
+	assert.Equal(t, nftables.TypeInetService, res.set.KeyType)
 	c.Flush()
 }
 
@@ -188,7 +188,7 @@ func TestClearAndAddElements(t *testing.T) {
 		Interval: true,
 		Counter:  true,
 	}
-	set := Set{Set: nfSet}
+	set := Set{set: nfSet}
 
 	setData, err := AddressStringToSetData("192.0.2.1")
 	assert.Nil(t, err)
@@ -221,7 +221,7 @@ func TestUpdateSetBadType(t *testing.T) {
 		Interval: true,
 		Counter:  true,
 	}
-	set := Set{Set: nfSet}
+	set := Set{set: nfSet}
 
 	setData, err := AddressStringToSetData("192.0.2.1")
 	assert.Nil(t, err)
@@ -538,7 +538,7 @@ func TestRuleDataDelta(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		set := Set{CurrentSetData: test.current}
+		set := Set{currentSetData: test.current}
 		add, remove := set.genSetDataDelta(test.incoming)
 
 		assert.ElementsMatch(t, add, test.wantAdd)
@@ -575,7 +575,7 @@ func TestUpdateElements(t *testing.T) {
 		Counter:  true,
 	}
 	oldSetData, _ := AddressStringToSetData("192.0.2.0")
-	set := Set{Set: nfSet, Mu: &sync.Mutex{}, CurrentSetData: map[SetData]struct{}{oldSetData: {}}}
+	set := Set{set: nfSet, mu: &sync.Mutex{}, currentSetData: map[SetData]struct{}{oldSetData: {}}}
 
 	setData, err := AddressStringToSetData("192.0.2.1")
 	assert.Nil(t, err)

@@ -134,7 +134,7 @@ func main() {
 
 	ruleTarget := rule.NewRuleTarget(nfTable, nfChain)
 
-	ruleInfo := newRuleInfo(portSet, ipv4Set, ipv6Set)
+	ruleInfo := newRuleInfo(portSet.GetSet(), ipv4Set.GetSet(), ipv6Set.GetSet())
 
 	ruleData, err := ruleInfo.createRuleData()
 	if err != nil {
@@ -169,7 +169,6 @@ func main() {
 		defer cancel()
 
 		ipv4SetManager, err := set.ManagerInit(
-			c,
 			ipv4Set,
 			ipSource.getIPList,
 			RefreshInterval,
@@ -181,7 +180,6 @@ func main() {
 		}
 
 		ipv6SetManager, err := set.ManagerInit(
-			c,
 			ipv6Set,
 			ipSource.getIPList,
 			RefreshInterval,
@@ -193,7 +191,6 @@ func main() {
 		}
 
 		portSetManager, err := set.ManagerInit(
-			c,
 			portSet,
 			portSource.getPortList,
 			RefreshInterval,
@@ -205,7 +202,6 @@ func main() {
 		}
 
 		ruleManager, err := rule.ManagerInit(
-			c,
 			ruleTarget,
 			ruleInfo.createRuleData,
 			RefreshInterval,
@@ -301,12 +297,12 @@ func readFile(path string) ([]string, error) {
 }
 
 type ruleInfo struct {
-	PortSet set.Set
-	IPv4Set set.Set
-	IPv6Set set.Set
+	PortSet *nftables.Set
+	IPv4Set *nftables.Set
+	IPv6Set *nftables.Set
 }
 
-func newRuleInfo(portSet set.Set, ipv4Set set.Set, ipv6Set set.Set) ruleInfo {
+func newRuleInfo(portSet *nftables.Set, ipv4Set *nftables.Set, ipv6Set *nftables.Set) ruleInfo {
 	return ruleInfo{
 		PortSet: portSet,
 		IPv4Set: ipv4Set,
@@ -315,12 +311,12 @@ func newRuleInfo(portSet set.Set, ipv4Set set.Set, ipv6Set set.Set) ruleInfo {
 }
 
 func (s *ruleInfo) createRuleData() ([]rule.RuleData, error) {
-	ipv6Exprs, err := generateExpression(s.PortSet.Set, s.IPv6Set.Set)
+	ipv6Exprs, err := generateExpression(s.PortSet, s.IPv6Set)
 	if err != nil {
 		return []rule.RuleData{}, err
 	}
 
-	ipv4Exprs, err := generateExpression(s.PortSet.Set, s.IPv4Set.Set)
+	ipv4Exprs, err := generateExpression(s.PortSet, s.IPv4Set)
 	if err != nil {
 		return []rule.RuleData{}, err
 	}
