@@ -41,8 +41,8 @@ const (
 
 // Default register and default xt_bpf version
 const (
-	DefaultRegister = 1
-	BpfRevision     = 1
+	defaultRegister = 1
+	bpfRevision     = 1
 )
 
 // Returns a source port payload expression
@@ -176,7 +176,7 @@ func MatchUnknown(name string, revision int, info []byte) *expr.Match {
 
 // Returns a xtables match bpf expression
 func MatchBpf(info []byte) *expr.Match {
-	return MatchUnknown("bpf", BpfRevision, info)
+	return MatchUnknown("bpf", bpfRevision, info)
 }
 
 // Returns a xtables match bpf expression with a verdict
@@ -189,7 +189,7 @@ func MatchBpfWithVerdict(info []byte, verdict *expr.Verdict) []expr.Any {
 
 // Returns a list of expressions that will compare the netfilter protocol family of traffic
 func CompareProtocolFamily(proto byte) ([]expr.Any, error) {
-	return CompareProtocolFamilyWithRegister(proto, DefaultRegister)
+	return CompareProtocolFamilyWithRegister(proto, defaultRegister)
 }
 
 // Returns a list of expressions that will compare the protocol family of traffic, with a user defined register
@@ -207,7 +207,7 @@ func CompareProtocolFamilyWithRegister(proto byte, reg int) ([]expr.Any, error) 
 
 // Returns a list of expressions that will compare the transport protocol of traffic
 func CompareTransportProtocol(proto byte) ([]expr.Any, error) {
-	return CompareTransportProtocolWithRegister(proto, DefaultRegister)
+	return CompareTransportProtocolWithRegister(proto, defaultRegister)
 }
 
 // Returns a list of expressions that will compare the transport protocol of traffic, with a user defined register
@@ -226,7 +226,7 @@ func CompareTransportProtocolWithRegister(proto byte, reg int) ([]expr.Any, erro
 
 // Returns a list of expressions that will compare the source port of traffic
 func CompareSourcePort(port int) ([]expr.Any, error) {
-	return CompareSourcePortWithRegister(port, DefaultRegister)
+	return CompareSourcePortWithRegister(port, defaultRegister)
 }
 
 // Returns a list of expressions that will compare the source port of traffic, with a user defined register
@@ -243,7 +243,7 @@ func CompareSourcePortWithRegister(port int, reg int) ([]expr.Any, error) {
 
 // Returns a list of expressions that will compare the destination port of traffic
 func CompareDestinationPort(port int) ([]expr.Any, error) {
-	return CompareDestinationPortWithRegister(port, DefaultRegister)
+	return CompareDestinationPortWithRegister(port, defaultRegister)
 }
 
 // Returns a list of expressions that will compare the destination port of traffic, with a user defined register
@@ -260,7 +260,7 @@ func CompareDestinationPortWithRegister(port int, reg int) ([]expr.Any, error) {
 
 // Returns a list of expressions that will compare the source address of traffic
 func CompareSourceAddress(ip netip.Addr) ([]expr.Any, error) {
-	return CompareSourceAddressWithRegister(ip, DefaultRegister)
+	return CompareSourceAddressWithRegister(ip, defaultRegister)
 }
 
 // Returns a list of expressions that will compare the source address of traffic, with a user defined register
@@ -286,7 +286,7 @@ func CompareSourceAddressWithRegister(ip netip.Addr, reg int) ([]expr.Any, error
 
 // Returns a list of expressions that will compare the destination address of traffic
 func CompareDestinationAddress(ip netip.Addr) ([]expr.Any, error) {
-	return CompareDestinationAddressWithRegister(ip, DefaultRegister)
+	return CompareDestinationAddressWithRegister(ip, defaultRegister)
 }
 
 // Returns a list of expressions that will compare the destination address of traffic, with a user defined register
@@ -312,7 +312,7 @@ func CompareDestinationAddressWithRegister(ip netip.Addr, reg int) ([]expr.Any, 
 
 // Returns a list of expressions that will compare the source address of traffic against a set
 func CompareSourceAddressSet(set *nftables.Set) ([]expr.Any, error) {
-	return CompareSourceAddressSetWithRegister(set, DefaultRegister)
+	return CompareSourceAddressSetWithRegister(set, defaultRegister)
 }
 
 // Returns a list of expressions that will compare the source address of traffic against a set, with a user defined register
@@ -332,7 +332,7 @@ func CompareSourceAddressSetWithRegister(set *nftables.Set, reg int) ([]expr.Any
 
 // Returns a list of expressions that will compare the destination address of traffic against a set
 func CompareDestinationAddressSet(set *nftables.Set) ([]expr.Any, error) {
-	return CompareDestinationAddressSetWithRegister(set, DefaultRegister)
+	return CompareDestinationAddressSetWithRegister(set, defaultRegister)
 }
 
 // Returns a list of expressions that will compare the destnation address of traffic against a set, with a user defined register
@@ -352,7 +352,7 @@ func CompareDestinationAddressSetWithRegister(set *nftables.Set, reg int) ([]exp
 
 // Returns a list of expressions that will compare the source port of traffic against a set
 func CompareSourcePortSet(set *nftables.Set) ([]expr.Any, error) {
-	return CompareSourcePortSetWithRegister(set, DefaultRegister)
+	return CompareSourcePortSetWithRegister(set, defaultRegister)
 }
 
 // Returns a list of expressions that will compare the source port of traffic against a set, with a user defined register
@@ -362,7 +362,7 @@ func CompareSourcePortSetWithRegister(set *nftables.Set, reg int) ([]expr.Any, e
 
 // Returns a list of expressions that will compare the destination port of traffic against a set
 func CompareDestinationPortSet(set *nftables.Set) ([]expr.Any, error) {
-	return CompareDestinationPortSetWithRegister(set, DefaultRegister)
+	return CompareDestinationPortSetWithRegister(set, defaultRegister)
 }
 
 // Returns a list of expressions that will compare the destination port of traffic against a set, with a user defined register

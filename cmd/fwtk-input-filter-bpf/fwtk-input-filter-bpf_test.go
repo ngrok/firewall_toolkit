@@ -7,29 +7,28 @@ import (
 
 	"github.com/google/nftables/binaryutil"
 	"github.com/google/nftables/expr"
-	"github.com/ngrok/firewall_toolkit/pkg/xtables"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetXtBpfInfoBytesBytecode(t *testing.T) {
 	b, err := getXtBpfInfoBytes("src 198.51.100.200")
 	assert.Nil(t, err)
-	assert.Equal(t, xtables.XtBpfInfoV1Size, len(b))
-	assert.Equal(t, xtables.XtBpfModeBytecode, int(binaryutil.NativeEndian.Uint16(b[0:1])))
+	// xtBpfModeBytecode
+	assert.Equal(t, 0, int(binaryutil.NativeEndian.Uint16(b[0:1])))
 }
 
 func TestGetXtBpfInfoBytesPinned(t *testing.T) {
 	b, err := getXtBpfInfoBytes("/test/123")
 	assert.Nil(t, err)
-	assert.Equal(t, xtables.XtBpfInfoV1Size, len(b))
-	assert.Equal(t, xtables.XtBpfModePathPinned, int(binaryutil.NativeEndian.Uint16(b[0:1])))
+	// xtBpfModeFdPinned
+	assert.Equal(t, 1, int(binaryutil.NativeEndian.Uint16(b[0:1])))
 }
 
 func TestGetXtBpfInfoBytesFd(t *testing.T) {
 	b, err := getXtBpfInfoBytes("1234")
 	assert.Nil(t, err)
-	assert.Equal(t, xtables.XtBpfInfoV1Size, len(b))
-	assert.Equal(t, xtables.XtBpfModeFdElf, int(binaryutil.NativeEndian.Uint16(b[0:1])))
+	// xtBpfModeFdElf
+	assert.Equal(t, 2, int(binaryutil.NativeEndian.Uint16(b[0:1])))
 }
 
 func TestGetVerdictDrop(t *testing.T) {

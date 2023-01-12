@@ -15,23 +15,23 @@ import (
 // Constants for designating the mode xt_bpf can run in
 const (
 	// https://github.com/torvalds/linux/blob/master/include/uapi/linux/netfilter/xt_bpf.h
-	XtBpfModeBytecode = iota
-	XtBpfModeFdPinned
-	XtBpfModeFdElf
+	xtBpfModeBytecode = iota
+	xtBpfModeFdPinned
+	xtBpfModeFdElf
 )
 
 // Constants for specifying bpf program lengths and attributes
 const (
-	XtBpfModePathPinned = XtBpfModeFdPinned
+	//xtBpfModePathPinned = xtBpfModeFdPinned
 
-	XtBpfMaxNumInstr = 64
+	xtBpfMaxNumInstr = 64
 
 	// sizeof(struct sock_filter) == 8
-	XtBpfPathMax = XtBpfMaxNumInstr * 8
+	xtBpfPathMax = xtBpfMaxNumInstr * 8
 
 	// XT_ALIGN(sizeof(struct xt_bpf_info)) == 528
 	// the xt_bpf_info_v1 is expected to be aligned and padded to the max
-	XtBpfInfoV1Size = 528
+	xtBpfInfoV1Size = 528
 )
 
 /*
@@ -49,21 +49,21 @@ const (
 )
 
 type bpfInfoV1 struct {
-	Mode    int
-	Fd      int
-	Program []bpf.RawInstruction
-	Path    string
+	mode    int
+	fd      int
+	program []bpf.RawInstruction
+	path    string
 }
 
 // Marshal a pinned program path into bytes compatible with xtables
 func MarshalBpfPinned(path string) ([]byte, error) {
-	if len(path) > XtBpfPathMax {
-		return []byte{}, fmt.Errorf("bpf path too long %v > %v", len(path), XtBpfPathMax)
+	if len(path) > xtBpfPathMax {
+		return []byte{}, fmt.Errorf("bpf path too long %v > %v", len(path), xtBpfPathMax)
 	}
 
 	xtBpfInfoBytes, err := marshallBpfInfoV1(bpfInfoV1{
-		Mode: XtBpfModeFdPinned,
-		Path: path,
+		mode: xtBpfModeFdPinned,
+		path: path,
 	})
 
 	if err != nil {
@@ -80,13 +80,13 @@ func MarshalBpfBytecode(filter string) ([]byte, error) {
 		return []byte{}, err
 	}
 
-	if len(bpfFilter) > XtBpfMaxNumInstr {
-		return []byte{}, fmt.Errorf("bpf filter too long %v > %v", len(bpfFilter), XtBpfMaxNumInstr)
+	if len(bpfFilter) > xtBpfMaxNumInstr {
+		return []byte{}, fmt.Errorf("bpf filter too long %v > %v", len(bpfFilter), xtBpfMaxNumInstr)
 	}
 
 	xtBpfInfoBytes, err := marshallBpfInfoV1(bpfInfoV1{
-		Mode:    XtBpfModeBytecode,
-		Program: bpfFilter,
+		mode:    xtBpfModeBytecode,
+		program: bpfFilter,
 	})
 
 	if err != nil {
@@ -103,8 +103,8 @@ func MarshalBpfFd(fd int) ([]byte, error) {
 	}
 
 	xtBpfInfoBytes, err := marshallBpfInfoV1(bpfInfoV1{
-		Mode: XtBpfModeFdElf,
-		Fd:   fd,
+		mode: xtBpfModeFdElf,
+		fd:   fd,
 	})
 
 	if err != nil {
@@ -117,35 +117,35 @@ func MarshalBpfFd(fd int) ([]byte, error) {
 func marshallBpfInfoV1(xtBpfInfo bpfInfoV1) ([]byte, error) {
 	// https://github.com/torvalds/linux/blob/master/net/netfilter/xt_bpf.c#L73
 	// unix.SockFilter and bpf.RawInstruction are equivalent
-	realSockFilter := [XtBpfMaxNumInstr]bpf.RawInstruction{}
-	realPath := xtBpfInfo.Path
+	realSockFilter := [xtBpfMaxNumInstr]bpf.RawInstruction{}
+	realPath := xtBpfInfo.path
 
 	data := alignedbuff.New()
 
-	switch xtBpfInfo.Mode {
-	case XtBpfModeBytecode:
-		copy(realSockFilter[:], xtBpfInfo.Program)
-	case XtBpfModeFdPinned:
-		for i := len(xtBpfInfo.Path); i < XtBpfPathMax; i++ {
+	switch xtBpfInfo.mode {
+	case xtBpfModeBytecode:
+		copy(realSockFilter[:], xtBpfInfo.program)
+	case xtBpfModeFdPinned:
+		for i := len(xtBpfInfo.path); i < xtBpfPathMax; i++ {
 			realPath = realPath + "\x00"
 		}
-	case XtBpfModeFdElf:
+	case xtBpfModeFdElf:
 		// do nothing
 	default:
-		return nil, fmt.Errorf("unkown bpf mode: %v", xtBpfInfo.Mode)
+		return nil, fmt.Errorf("unkown bpf mode: %v", xtBpfInfo.mode)
 	}
 
 	// __u16 mode;
-	data.PutUint16(uint16(xtBpfInfo.Mode))
+	data.PutUint16(uint16(xtBpfInfo.mode))
 
 	// __u16 bpf_program_num_elem;
-	data.PutUint16(uint16(len(xtBpfInfo.Program)))
+	data.PutUint16(uint16(len(xtBpfInfo.program)))
 
 	// __s32 fd;
-	data.PutInt32(int32(xtBpfInfo.Fd))
+	data.PutInt32(int32(xtBpfInfo.fd))
 
-	switch xtBpfInfo.Mode {
-	case XtBpfModeBytecode:
+	switch xtBpfInfo.mode {
+	case xtBpfModeBytecode:
 		// struct sock_filter bpf_program[XT_BPF_MAX_NUM_INSTR];
 		for _, ins := range realSockFilter {
 			data.PutUint16(ins.Op)
@@ -153,10 +153,10 @@ func marshallBpfInfoV1(xtBpfInfo bpfInfoV1) ([]byte, error) {
 			data.PutUint8(ins.Jf)
 			data.PutUint32(ins.K)
 		}
-	case XtBpfModeFdPinned:
+	case xtBpfModeFdPinned:
 		// char path[XT_BPF_PATH_MAX];
 		data.PutString(realPath)
-	case XtBpfModeFdElf:
+	case xtBpfModeFdElf:
 		// the sockfilter/path union isn't used in this mode but we still have to fill it up with something
 		data.PutString(nullSockfilterPathUnion)
 	}
@@ -167,8 +167,8 @@ func marshallBpfInfoV1(xtBpfInfo bpfInfoV1) ([]byte, error) {
 
 	out := data.Data()
 
-	if len(out) != XtBpfInfoV1Size {
-		return nil, fmt.Errorf("xtBpfInfoV1 is the wrong size %v != %v", len(out), XtBpfInfoV1Size)
+	if len(out) != xtBpfInfoV1Size {
+		return nil, fmt.Errorf("xtBpfInfoV1 is the wrong size %v != %v", len(out), xtBpfInfoV1Size)
 	}
 
 	return out, nil
