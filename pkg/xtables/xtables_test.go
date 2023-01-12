@@ -44,8 +44,8 @@ func TestBpfFd(t *testing.T) {
 
 func TestBadMode(t *testing.T) {
 	_, err := marshallBpfInfoV1(bpfInfoV1{
-		Mode: 9999,
-		Fd:   1,
+		mode: 9999,
+		fd:   1,
 	})
 
 	assert.Error(t, err)
@@ -53,7 +53,7 @@ func TestBadMode(t *testing.T) {
 
 func TestBadPinned(t *testing.T) {
 	badPath := ""
-	for i := len(badPath); i < XtBpfPathMax; i++ {
+	for i := len(badPath); i < xtBpfPathMax; i++ {
 		badPath = badPath + "\x00"
 	}
 	_, err := MarshalBpfPinned(badPath + "\x00")
