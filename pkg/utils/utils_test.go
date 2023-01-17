@@ -12,16 +12,6 @@ func TestValidatePortRange(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestValidateBadPortRangeStart(t *testing.T) {
-	err := ValidatePortRange(-100, 100)
-	assert.Error(t, err)
-}
-
-func TestValidateBadPortRangeEnd(t *testing.T) {
-	err := ValidatePortRange(100, -100)
-	assert.Error(t, err)
-}
-
 func TestValidateBadPortRangeBeginEnd(t *testing.T) {
 	err := ValidatePortRange(101, 100)
 	assert.Error(t, err)
@@ -34,11 +24,6 @@ func TestValidatePort(t *testing.T) {
 
 func TestValidateBadPortLow(t *testing.T) {
 	err := ValidatePort(0)
-	assert.Error(t, err)
-}
-
-func TestValidateBadPortHight(t *testing.T) {
-	err := ValidatePort(10000000)
 	assert.Error(t, err)
 }
 

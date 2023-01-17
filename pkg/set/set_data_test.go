@@ -3,7 +3,6 @@ package set
 import (
 	"net"
 	"net/netip"
-	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -225,10 +224,7 @@ func TestGoodPort(t *testing.T) {
 	res, err := PortStringToSetData(one)
 	assert.Nil(t, err)
 
-	parsed, err := strconv.Atoi(one)
-	assert.Nil(t, err)
-
-	assert.Equal(t, res.Port, parsed)
+	assert.Equal(t, res.Port, uint16(8000))
 }
 
 func TestGoodPortRange(t *testing.T) {
@@ -237,14 +233,8 @@ func TestGoodPortRange(t *testing.T) {
 	res, err := PortRangeStringToSetData(one, two)
 	assert.Nil(t, err)
 
-	parsedOne, err := strconv.Atoi(one)
-	assert.Nil(t, err)
-
-	parsedTwo, err := strconv.Atoi(two)
-	assert.Nil(t, err)
-
-	assert.Equal(t, res.PortRangeStart, parsedOne)
-	assert.Equal(t, res.PortRangeEnd, parsedTwo)
+	assert.Equal(t, res.PortRangeStart, uint16(8000))
+	assert.Equal(t, res.PortRangeEnd, uint16(9000))
 }
 
 func TestGoodNetipAddressesV4(t *testing.T) {
@@ -272,5 +262,5 @@ func TestGoodNetipAddrPortsV4(t *testing.T) {
 	addrs, ports, err := NetipAddrPortsToSetData(list)
 	assert.Nil(t, err)
 	assert.Equal(t, addrs[0].Address, parsed.Addr())
-	assert.Equal(t, ports[0].Port, int(parsed.Port()))
+	assert.Equal(t, ports[0].Port, parsed.Port())
 }

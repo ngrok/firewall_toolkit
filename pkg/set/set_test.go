@@ -353,24 +353,6 @@ func TestGenerateSetElementsInvalidPrefixV6(t *testing.T) {
 	assert.Equal(t, []nftables.SetElement{}, res)
 }
 
-func TestGenerateSetElementsInvalidPort(t *testing.T) {
-	setData := []SetData{
-		{Port: -1000},
-	}
-	res, err := generateElements(nftables.TypeInetService, setData)
-	assert.Error(t, err)
-	assert.Equal(t, []nftables.SetElement{}, res)
-}
-
-func TestGenerateSetElementsInvalidPortRange(t *testing.T) {
-	setData := []SetData{
-		{PortRangeStart: 100000, PortRangeEnd: 1000001},
-	}
-	res, err := generateElements(nftables.TypeInetService, setData)
-	assert.Error(t, err)
-	assert.Equal(t, []nftables.SetElement{}, res)
-}
-
 func TestGenerateSetElementsEmptySetDataPorts(t *testing.T) {
 	setData := []SetData{{}}
 	res, err := generateElements(nftables.TypeInetService, setData)
