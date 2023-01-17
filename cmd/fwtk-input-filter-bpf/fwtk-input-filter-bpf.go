@@ -115,9 +115,9 @@ func getVerdict(verdict string) (*expr.Verdict, error) {
 }
 
 func getXtBpfInfoBytes(filter string) ([]byte, error) {
-	fd, err := strconv.Atoi(filter)
+	fd, err := strconv.ParseInt(filter, 10, 32)
 	if err == nil {
-		xtBpfInfoBytes, err := xtables.MarshalBpfFd(fd)
+		xtBpfInfoBytes, err := xtables.MarshalBpfFd(int32(fd))
 
 		if err != nil {
 			return []byte{}, err

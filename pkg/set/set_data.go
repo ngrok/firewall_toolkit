@@ -10,9 +10,9 @@ import (
 
 // SetData is a struct that is used to create elements of a given set based on the key type of the set
 type SetData struct {
-	Port              int
-	PortRangeStart    int
-	PortRangeEnd      int
+	Port              uint16
+	PortRangeStart    uint16
+	PortRangeEnd      uint16
 	Address           netip.Addr
 	AddressRangeStart netip.Addr
 	AddressRangeEnd   netip.Addr
@@ -95,29 +95,29 @@ func AddressStringsToSetData(addressStrings []string) ([]SetData, error) {
 
 // Convert a string port to the SetData type
 func PortStringToSetData(portString string) (SetData, error) {
-	port, err := strconv.Atoi(portString)
+	port, err := strconv.ParseUint(portString, 10, 16)
 	if err != nil {
 		return SetData{}, err
 	}
 
-	return SetData{Port: port}, nil
+	return SetData{Port: uint16(port)}, nil
 }
 
 // Convert a string port range to the SetData type
 func PortRangeStringToSetData(startString string, endString string) (SetData, error) {
-	start, err := strconv.Atoi(startString)
+	start, err := strconv.ParseUint(startString, 10, 16)
 	if err != nil {
 		return SetData{}, err
 	}
 
-	end, err := strconv.Atoi(endString)
+	end, err := strconv.ParseUint(endString, 10, 16)
 	if err != nil {
 		return SetData{}, err
 	}
 
 	return SetData{
-		PortRangeStart: start,
-		PortRangeEnd:   end,
+		PortRangeStart: uint16(start),
+		PortRangeEnd:   uint16(end),
 	}, nil
 }
 
@@ -258,5 +258,5 @@ func NetipAddrPortsToSetData(addrports []netip.AddrPort) ([]SetData, []SetData, 
 
 // Convert netip.AddrPort to SetData type, returns a address and a port
 func NetipAddrPortToSetData(addrport netip.AddrPort) (SetData, SetData, error) {
-	return SetData{Address: addrport.Addr()}, SetData{Port: int(addrport.Port())}, nil
+	return SetData{Address: addrport.Addr()}, SetData{Port: uint16(addrport.Port())}, nil
 }

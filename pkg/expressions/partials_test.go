@@ -157,16 +157,6 @@ func TestMatchBpfWithVerdict(t *testing.T) {
 	assert.Equal(t, &expr.Verdict{Kind: expr.VerdictDrop}, match[1])
 }
 
-func TestCompareBadPort(t *testing.T) {
-	res, err := CompareSourcePort(10000000)
-	assert.Error(t, err)
-	assert.Equal(t, []expr.Any{}, res)
-
-	res, err = CompareDestinationPort(10000000)
-	assert.Error(t, err)
-	assert.Equal(t, []expr.Any{}, res)
-}
-
 func TestCompareBadAddress(t *testing.T) {
 	res, err := CompareSourceAddress(netip.Addr{})
 	assert.Error(t, err)

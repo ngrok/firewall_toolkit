@@ -9,7 +9,7 @@ import (
 )
 
 // Validates start and end port numbers
-func ValidatePortRange(start int, end int) error {
+func ValidatePortRange(start uint16, end uint16) error {
 	if err := ValidatePort(start); err != nil {
 		return err
 	}
@@ -26,7 +26,7 @@ func ValidatePortRange(start int, end int) error {
 }
 
 // Validates a port number
-func ValidatePort(port int) error {
+func ValidatePort(port uint16) error {
 	if port < 1 {
 		return fmt.Errorf("port (%v) less than 1", port)
 	}

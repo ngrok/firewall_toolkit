@@ -46,9 +46,9 @@ const (
 )
 
 // Returns a source port payload expression
-func SourcePort(reg int) *expr.Payload {
+func SourcePort(reg uint32) *expr.Payload {
 	return &expr.Payload{
-		DestRegister: uint32(reg),
+		DestRegister: reg,
 		Base:         expr.PayloadBaseTransportHeader,
 		Offset:       SrcPortOffset,
 		Len:          PortLen,
@@ -56,9 +56,9 @@ func SourcePort(reg int) *expr.Payload {
 }
 
 // Returns a destination port payload expression
-func DestinationPort(reg int) *expr.Payload {
+func DestinationPort(reg uint32) *expr.Payload {
 	return &expr.Payload{
-		DestRegister: uint32(reg),
+		DestRegister: reg,
 		Base:         expr.PayloadBaseTransportHeader,
 		Offset:       DstPortOffset,
 		Len:          PortLen,
@@ -66,9 +66,9 @@ func DestinationPort(reg int) *expr.Payload {
 }
 
 // Returns a IPv4 source address payload expression
-func IPv4SourceAddress(reg int) *expr.Payload {
+func IPv4SourceAddress(reg uint32) *expr.Payload {
 	return &expr.Payload{
-		DestRegister: uint32(reg),
+		DestRegister: reg,
 		Base:         expr.PayloadBaseNetworkHeader,
 		Offset:       IPv4SrcOffset,
 		Len:          IPv4AddrLen,
@@ -76,9 +76,9 @@ func IPv4SourceAddress(reg int) *expr.Payload {
 }
 
 // Returns a IPv6 source address payload expression
-func IPv6SourceAddress(reg int) *expr.Payload {
+func IPv6SourceAddress(reg uint32) *expr.Payload {
 	return &expr.Payload{
-		DestRegister: uint32(reg),
+		DestRegister: reg,
 		Base:         expr.PayloadBaseNetworkHeader,
 		Offset:       IPv6SrcOffest,
 		Len:          IPv6AddrLen,
@@ -86,9 +86,9 @@ func IPv6SourceAddress(reg int) *expr.Payload {
 }
 
 // Returns a IPv4 destination address payload expression
-func IPv4DestinationAddress(reg int) *expr.Payload {
+func IPv4DestinationAddress(reg uint32) *expr.Payload {
 	return &expr.Payload{
-		DestRegister: uint32(reg),
+		DestRegister: reg,
 		Base:         expr.PayloadBaseNetworkHeader,
 		Offset:       IPv4DstOffset,
 		Len:          IPv4AddrLen,
@@ -96,9 +96,9 @@ func IPv4DestinationAddress(reg int) *expr.Payload {
 }
 
 // Returns a IPv6 destination address payload expression
-func IPv6DestinationAddress(reg int) *expr.Payload {
+func IPv6DestinationAddress(reg uint32) *expr.Payload {
 	return &expr.Payload{
-		DestRegister: uint32(reg),
+		DestRegister: reg,
 		Base:         expr.PayloadBaseNetworkHeader,
 		Offset:       IPv6DstOffset,
 		Len:          IPv6AddrLen,
@@ -106,28 +106,28 @@ func IPv6DestinationAddress(reg int) *expr.Payload {
 }
 
 // Returns a port set lookup expression
-func PortSetLookUp(set *nftables.Set, reg int) *expr.Lookup {
+func PortSetLookUp(set *nftables.Set, reg uint32) *expr.Lookup {
 	return &expr.Lookup{
-		SourceRegister: uint32(reg),
+		SourceRegister: reg,
 		SetName:        set.Name,
 		SetID:          set.ID,
 	}
 }
 
 // Returns an IP set lookup expression
-func IPSetLookUp(set *nftables.Set, reg int) *expr.Lookup {
+func IPSetLookUp(set *nftables.Set, reg uint32) *expr.Lookup {
 	return &expr.Lookup{
-		SourceRegister: uint32(reg),
+		SourceRegister: reg,
 		SetName:        set.Name,
 		SetID:          set.ID,
 	}
 }
 
 // Returns a meta expression
-func Meta(meta expr.MetaKey, reg int) *expr.Meta {
+func Meta(meta expr.MetaKey, reg uint32) *expr.Meta {
 	return &expr.Meta{
 		Key:      meta,
-		Register: uint32(reg),
+		Register: reg,
 	}
 }
 
@@ -137,10 +137,10 @@ func Counter() *expr.Counter {
 }
 
 // Returns an equal comparison expression
-func Equals(data []byte, reg int) *expr.Cmp {
+func Equals(data []byte, reg uint32) *expr.Cmp {
 	return &expr.Cmp{
 		Op:       expr.CmpOpEq,
-		Register: uint32(reg),
+		Register: reg,
 		Data:     data,
 	}
 }
@@ -160,16 +160,16 @@ func Drop() *expr.Verdict {
 }
 
 // Returns a xtables match expression
-func Match(name string, revision int, info xt.InfoAny) *expr.Match {
+func Match(name string, revision uint32, info xt.InfoAny) *expr.Match {
 	return &expr.Match{
 		Name: name,
-		Rev:  uint32(revision),
+		Rev:  revision,
 		Info: info,
 	}
 }
 
 // Returns a xtables match expression of unknown type
-func MatchUnknown(name string, revision int, info []byte) *expr.Match {
+func MatchUnknown(name string, revision uint32, info []byte) *expr.Match {
 	infoBytes := xt.Unknown(info)
 	return Match(name, revision, &infoBytes)
 }
@@ -193,7 +193,7 @@ func CompareProtocolFamily(proto byte) ([]expr.Any, error) {
 }
 
 // Returns a list of expressions that will compare the protocol family of traffic, with a user defined register
-func CompareProtocolFamilyWithRegister(proto byte, reg int) ([]expr.Any, error) {
+func CompareProtocolFamilyWithRegister(proto byte, reg uint32) ([]expr.Any, error) {
 	if int(proto) >= unix.NFPROTO_NUMPROTO {
 		return []expr.Any{}, fmt.Errorf("invalid protocol family %v", proto)
 	}
@@ -211,7 +211,7 @@ func CompareTransportProtocol(proto byte) ([]expr.Any, error) {
 }
 
 // Returns a list of expressions that will compare the transport protocol of traffic, with a user defined register
-func CompareTransportProtocolWithRegister(proto byte, reg int) ([]expr.Any, error) {
+func CompareTransportProtocolWithRegister(proto byte, reg uint32) ([]expr.Any, error) {
 	// it seems like netlink and/or nftables assume proto is unint8 but it can be larger
 	// https://elixir.bootlin.com/linux/latest/source/include/uapi/linux/in.h#L83
 	// we use byte here to work around this and support everything but MPTCP
@@ -225,36 +225,36 @@ func CompareTransportProtocolWithRegister(proto byte, reg int) ([]expr.Any, erro
 }
 
 // Returns a list of expressions that will compare the source port of traffic
-func CompareSourcePort(port int) ([]expr.Any, error) {
+func CompareSourcePort(port uint16) ([]expr.Any, error) {
 	return CompareSourcePortWithRegister(port, defaultRegister)
 }
 
 // Returns a list of expressions that will compare the source port of traffic, with a user defined register
-func CompareSourcePortWithRegister(port int, reg int) ([]expr.Any, error) {
+func CompareSourcePortWithRegister(port uint16, reg uint32) ([]expr.Any, error) {
 	if err := utils.ValidatePort(port); err != nil {
 		return []expr.Any{}, err
 	}
 
 	return []expr.Any{
 		SourcePort(reg),
-		Equals(binaryutil.BigEndian.PutUint16(uint16(port)), reg),
+		Equals(binaryutil.BigEndian.PutUint16(port), reg),
 	}, nil
 }
 
 // Returns a list of expressions that will compare the destination port of traffic
-func CompareDestinationPort(port int) ([]expr.Any, error) {
+func CompareDestinationPort(port uint16) ([]expr.Any, error) {
 	return CompareDestinationPortWithRegister(port, defaultRegister)
 }
 
 // Returns a list of expressions that will compare the destination port of traffic, with a user defined register
-func CompareDestinationPortWithRegister(port int, reg int) ([]expr.Any, error) {
+func CompareDestinationPortWithRegister(port uint16, reg uint32) ([]expr.Any, error) {
 	if err := utils.ValidatePort(port); err != nil {
 		return []expr.Any{}, err
 	}
 
 	return []expr.Any{
 		DestinationPort(reg),
-		Equals(binaryutil.BigEndian.PutUint16(uint16(port)), reg),
+		Equals(binaryutil.BigEndian.PutUint16(port), reg),
 	}, nil
 }
 
@@ -264,7 +264,7 @@ func CompareSourceAddress(ip netip.Addr) ([]expr.Any, error) {
 }
 
 // Returns a list of expressions that will compare the source address of traffic, with a user defined register
-func CompareSourceAddressWithRegister(ip netip.Addr, reg int) ([]expr.Any, error) {
+func CompareSourceAddressWithRegister(ip netip.Addr, reg uint32) ([]expr.Any, error) {
 	if err := utils.ValidateAddress(ip); err != nil {
 		return []expr.Any{}, err
 	}
@@ -290,7 +290,7 @@ func CompareDestinationAddress(ip netip.Addr) ([]expr.Any, error) {
 }
 
 // Returns a list of expressions that will compare the destination address of traffic, with a user defined register
-func CompareDestinationAddressWithRegister(ip netip.Addr, reg int) ([]expr.Any, error) {
+func CompareDestinationAddressWithRegister(ip netip.Addr, reg uint32) ([]expr.Any, error) {
 	if err := utils.ValidateAddress(ip); err != nil {
 		return []expr.Any{}, err
 	}
@@ -316,7 +316,7 @@ func CompareSourceAddressSet(set *nftables.Set) ([]expr.Any, error) {
 }
 
 // Returns a list of expressions that will compare the source address of traffic against a set, with a user defined register
-func CompareSourceAddressSetWithRegister(set *nftables.Set, reg int) ([]expr.Any, error) {
+func CompareSourceAddressSetWithRegister(set *nftables.Set, reg uint32) ([]expr.Any, error) {
 	var srcAddr *expr.Payload
 	switch set.KeyType {
 	case nftables.TypeIPAddr:
@@ -336,7 +336,7 @@ func CompareDestinationAddressSet(set *nftables.Set) ([]expr.Any, error) {
 }
 
 // Returns a list of expressions that will compare the destnation address of traffic against a set, with a user defined register
-func CompareDestinationAddressSetWithRegister(set *nftables.Set, reg int) ([]expr.Any, error) {
+func CompareDestinationAddressSetWithRegister(set *nftables.Set, reg uint32) ([]expr.Any, error) {
 	var dstAddr *expr.Payload
 	switch set.KeyType {
 	case nftables.TypeIPAddr:
@@ -356,7 +356,7 @@ func CompareSourcePortSet(set *nftables.Set) ([]expr.Any, error) {
 }
 
 // Returns a list of expressions that will compare the source port of traffic against a set, with a user defined register
-func CompareSourcePortSetWithRegister(set *nftables.Set, reg int) ([]expr.Any, error) {
+func CompareSourcePortSetWithRegister(set *nftables.Set, reg uint32) ([]expr.Any, error) {
 	return []expr.Any{SourcePort(reg), PortSetLookUp(set, reg)}, nil
 }
 
@@ -366,6 +366,6 @@ func CompareDestinationPortSet(set *nftables.Set) ([]expr.Any, error) {
 }
 
 // Returns a list of expressions that will compare the destination port of traffic against a set, with a user defined register
-func CompareDestinationPortSetWithRegister(set *nftables.Set, reg int) ([]expr.Any, error) {
+func CompareDestinationPortSetWithRegister(set *nftables.Set, reg uint32) ([]expr.Any, error) {
 	return []expr.Any{DestinationPort(reg), PortSetLookUp(set, reg)}, nil
 }

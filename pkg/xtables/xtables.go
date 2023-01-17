@@ -49,8 +49,8 @@ const (
 )
 
 type bpfInfoV1 struct {
-	mode    int
-	fd      int
+	mode    uint16
+	fd      int32
 	program []bpf.RawInstruction
 	path    string
 }
@@ -97,7 +97,7 @@ func MarshalBpfBytecode(filter string) ([]byte, error) {
 }
 
 // Marshal a socket file descriptor into bytes compatible with xtables
-func MarshalBpfFd(fd int) ([]byte, error) {
+func MarshalBpfFd(fd int32) ([]byte, error) {
 	if fd < 0 {
 		return []byte{}, fmt.Errorf("bad bpf file descriptor %v", fd)
 	}
@@ -136,13 +136,13 @@ func marshallBpfInfoV1(xtBpfInfo bpfInfoV1) ([]byte, error) {
 	}
 
 	// __u16 mode;
-	data.PutUint16(uint16(xtBpfInfo.mode))
+	data.PutUint16(xtBpfInfo.mode)
 
 	// __u16 bpf_program_num_elem;
 	data.PutUint16(uint16(len(xtBpfInfo.program)))
 
 	// __s32 fd;
-	data.PutInt32(int32(xtBpfInfo.fd))
+	data.PutInt32(xtBpfInfo.fd)
 
 	switch xtBpfInfo.mode {
 	case xtBpfModeBytecode:
