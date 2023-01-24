@@ -89,11 +89,14 @@ func (r *RuleTarget) Exists(c *nftables.Conn, ruleData RuleData) (bool, error) {
 }
 
 // Compare existing and incoming rule IDs adding/removing the difference
-func (r *RuleTarget) Update(c *nftables.Conn, rules []RuleData) (bool, error) {
+//
+// First return value is true if the number of rules has changed, false if there were no updates. The second
+// and third return values indicate the number of rules added or removed, respectively.
+func (r *RuleTarget) Update(c *nftables.Conn, rules []RuleData) (bool, int, int, error) {
 	var modified bool
 	existingRules, err := c.GetRules(r.table, r.chain)
 	if err != nil {
-		return false, fmt.Errorf("error getting existing rules for update: %v", err)
+		return false, 0, 0, fmt.Errorf("error getting existing rules for update: %v", err)
 	}
 
 	addRDList, removeRDList := genRuleDelta(existingRules, rules)
@@ -102,7 +105,7 @@ func (r *RuleTarget) Update(c *nftables.Conn, rules []RuleData) (bool, error) {
 		for _, rule := range removeRDList {
 			err := c.DelRule(rule)
 			if err != nil {
-				return false, err
+				return false, 0, 0, err
 			}
 			modified = true
 		}
@@ -115,7 +118,7 @@ func (r *RuleTarget) Update(c *nftables.Conn, rules []RuleData) (bool, error) {
 		}
 	}
 
-	return modified, nil
+	return modified, len(addRDList), len(removeRDList), nil
 }
 
 // Get the nftables table and chain associated with this RuleTarget

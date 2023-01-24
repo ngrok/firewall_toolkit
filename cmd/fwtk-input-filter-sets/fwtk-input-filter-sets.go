@@ -173,6 +173,7 @@ func main() {
 			ipSource.getIPList,
 			RefreshInterval,
 			logger.Default,
+			nil,
 		)
 
 		if err != nil {
@@ -184,6 +185,7 @@ func main() {
 			ipSource.getIPList,
 			RefreshInterval,
 			logger.Default,
+			nil,
 		)
 
 		if err != nil {
@@ -195,6 +197,7 @@ func main() {
 			portSource.getPortList,
 			RefreshInterval,
 			logger.Default,
+			nil,
 		)
 
 		if err != nil {
@@ -206,6 +209,7 @@ func main() {
 			ruleInfo.createRuleData,
 			RefreshInterval,
 			logger.Default,
+			nil,
 		)
 
 		if err != nil {

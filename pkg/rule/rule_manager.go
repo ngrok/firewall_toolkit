@@ -4,14 +4,17 @@ package rule
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/DataDog/datadog-go/v5/statsd"
 	"github.com/google/nftables"
 
 	"github.com/ngrok/firewall_toolkit/pkg/logger"
+	m "github.com/ngrok/firewall_toolkit/pkg/metrics"
 )
 
 type RulesUpdateFunc func() ([]RuleData, error)
@@ -23,13 +26,17 @@ type ManagedRules struct {
 	rulesUpdateFunc RulesUpdateFunc
 	interval        time.Duration
 	logger          logger.Logger
+	metrics         m.Metrics
 }
 
-// Create a rule manager
-func ManagerInit(ruleTarget RuleTarget, f RulesUpdateFunc, interval time.Duration, logger logger.Logger) (ManagedRules, error) {
+func ManagerInit(ruleTarget RuleTarget, f RulesUpdateFunc, interval time.Duration, logger logger.Logger, metrics m.Metrics) (ManagedRules, error) {
 	c, err := nftables.New()
 	if err != nil {
 		return ManagedRules{}, err
+	}
+
+	if metrics == nil {
+		metrics = &statsd.NoOpClient{}
 	}
 
 	return ManagedRules{
@@ -38,6 +45,7 @@ func ManagerInit(ruleTarget RuleTarget, f RulesUpdateFunc, interval time.Duratio
 		rulesUpdateFunc: f,
 		interval:        interval,
 		logger:          logger,
+		metrics:         metrics,
 	}, nil
 }
 
@@ -61,19 +69,54 @@ func (r *ManagedRules) Start(ctx context.Context) error {
 			ruleData, err := r.rulesUpdateFunc()
 			if err != nil {
 				r.logger.Errorf("error with rules update function for table/chain %v/%v: %v", r.ruleTarget.table.Name, r.ruleTarget.chain.Name, err)
+
+				err = r.metrics.Count(m.Prefix("manager_loop_update_func"), 1, r.genTags([]string{"success:false"}), 1)
+				if err != nil {
+					r.logger.Warnf("error sending manager_loop_update_func metric: %v", err)
+				}
+
+				continue
 			}
 
-			flush, err := r.ruleTarget.Update(r.conn, ruleData)
+			err = r.metrics.Count(m.Prefix("manager_loop_update_func"), 1, r.genTags([]string{"success:true"}), 1)
+			if err != nil {
+				r.logger.Warnf("error sending manager_loop_update_func metric: %v", err)
+			}
+
+			flush, added, deleted, err := r.ruleTarget.Update(r.conn, ruleData)
 			if err != nil {
 				r.logger.Errorf("error updating rules: %v", err)
+
+				err = r.metrics.Count(m.Prefix("manager_loop_update_data"), 1, r.genTags([]string{"success:false"}), 1)
+				if err != nil {
+					r.logger.Warnf("error sending manager_loop_update_data metric: %v", err)
+				}
+			}
+			// only flush if things went well above
+			if !flush {
+				continue
 			}
 
-			// only flush if things went well above
-			if flush {
-				r.logger.Infof("flushing rules for table/chain %v/%v", r.ruleTarget.table.Name, r.ruleTarget.chain.Name)
-				if err := r.conn.Flush(); err != nil {
-					r.logger.Errorf("error flushing rules for table/chain %v/%v: %v", r.ruleTarget.table.Name, r.ruleTarget.chain.Name, err)
+			r.logger.Infof("flushing rules for table/chain %v/%v", r.ruleTarget.table.Name, r.ruleTarget.chain.Name)
+			if err := r.conn.Flush(); err != nil {
+				r.logger.Errorf("error flushing rules for table/chain %v/%v: %v", r.ruleTarget.table.Name, r.ruleTarget.chain.Name, err)
+				err = r.metrics.Count(m.Prefix("manager_loop_flush"), 1, r.genTags([]string{"success:false"}), 1)
+				if err != nil {
+					r.logger.Warnf("error sending manager_loop_flush metric: %v", err)
 				}
+				continue
+			}
+			err = r.metrics.Count(m.Prefix("manager_loop_update_data_added"), int64(added), r.genTags([]string{}), 1)
+			if err != nil {
+				r.logger.Warnf("error sending manager_loop_update_data_added metric: %v", err)
+			}
+			err = r.metrics.Count(m.Prefix("manager_loop_update_data_deleted"), int64(deleted), r.genTags([]string{}), 1)
+			if err != nil {
+				r.logger.Warnf("error sending manager_loop_update_data_deleted metric: %v", err)
+			}
+			err = r.metrics.Count(m.Prefix("manager_loop_flush"), 1, r.genTags([]string{"success:true"}), 1)
+			if err != nil {
+				r.logger.Warnf("error sending manager_loop_flush metric: %v", err)
 			}
 		}
 	}
@@ -82,4 +125,14 @@ func (r *ManagedRules) Start(ctx context.Context) error {
 // Get the rule target that this manager is operating on
 func (r *ManagedRules) GetRuleTarget() RuleTarget {
 	return r.ruleTarget
+}
+
+func (r *ManagedRules) genTags(additional []string) []string {
+	defaultTags := []string{
+		"manager_type:rule",
+		fmt.Sprintf("table:%s", r.ruleTarget.table.Name),
+		fmt.Sprintf("chain:%s", r.ruleTarget.chain.Name),
+	}
+
+	return append(additional, defaultTags...)
 }
