@@ -56,7 +56,7 @@ func TestValidateBadAddressRangeEnd(t *testing.T) {
 }
 
 func TestValidateIP(t *testing.T) {
-	ip := netip.MustParseAddr("2001:1db8:85a3:1:1:8a2e:1370:7334")
+	ip := netip.MustParseAddr("2001:db80:85a3:1:1:8a2e:1370:7334")
 	err := ValidateAddress(ip)
 	assert.Nil(t, err)
 }
@@ -73,7 +73,7 @@ func TestValidateBadIPUnspec(t *testing.T) {
 }
 
 func TestValidatePrefix(t *testing.T) {
-	prefix := netip.MustParsePrefix("2001:db8:1234::/48")
+	prefix := netip.MustParsePrefix("2001:db80:1234::/48")
 	err := ValidatePrefix(prefix)
 	assert.Nil(t, err)
 }

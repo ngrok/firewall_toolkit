@@ -107,9 +107,9 @@ func TestGoodAddressStringList(t *testing.T) {
 		"198.51.100.200",
 		"198.51.100.1-198.51.100.100",
 		"203.0.113.100/30",
-		"2001:1db8:85a3:1:1:8a2e:1370:7334",
-		"2001:1db8:85a3:1:1:8a2e:1370:7336-2001:1db8:85a3:1:1:8a2e:1370:7339",
-		"2001:db8:1234::/48",
+		"2001:db80:85a3:1:1:8a2e:1370:7334",
+		"2001:db80:85a3:1:1:8a2e:1370:7336-2001:db80:85a3:1:1:8a2e:1370:7339",
+		"2001:dbb0:1234::/48",
 	}
 
 	res, err := AddressStringsToSetData(good)
@@ -132,7 +132,7 @@ func TestGoodIPNetList(t *testing.T) {
 	_, one, err := net.ParseCIDR("203.0.113.100/30")
 	assert.Nil(t, err)
 
-	_, two, err := net.ParseCIDR("2001:db8:1234::/48")
+	_, two, err := net.ParseCIDR("2001:dbb0:1234::/48")
 	assert.Nil(t, err)
 
 	good := []*net.IPNet{
@@ -147,7 +147,7 @@ func TestGoodIPNetList(t *testing.T) {
 
 func TestGoodIPList(t *testing.T) {
 	one := net.ParseIP("203.0.113.100")
-	two := net.ParseIP("2001:db8:1234::")
+	two := net.ParseIP("2001:dbb0:1234::")
 
 	good := []net.IP{
 		one,
@@ -169,7 +169,7 @@ func TestGoodAddressV4(t *testing.T) {
 }
 
 func TestGoodAddressV6(t *testing.T) {
-	one := "2001:1db8:85a3:1:1:8a2e:1370:7334"
+	one := "2001:db80:85a3:1:1:8a2e:1370:7334"
 	res, err := AddressStringToSetData(one)
 	assert.Nil(t, err)
 
@@ -190,8 +190,8 @@ func TestGoodRangeAddressV4(t *testing.T) {
 }
 
 func TestGoodAddressRangeV6(t *testing.T) {
-	one := "2001:1db8:85a3:1:1:8a2e:1370:7334"
-	two := "2001:1db8:85a3:1:1:8a2e:1370:7339"
+	one := "2001:db80:85a3:1:1:8a2e:1370:7334"
+	two := "2001:db80:85a3:1:1:8a2e:1370:7339"
 	res, err := AddressRangeStringToSetData(one, two)
 	assert.Nil(t, err)
 
@@ -211,7 +211,7 @@ func TestGoodPrefixV4(t *testing.T) {
 }
 
 func TestGoodPrefixV6(t *testing.T) {
-	one := "2001:db8:1234::/48"
+	one := "2001:dbb0:1234::/48"
 	res, err := PrefixStringToSetData(one)
 	assert.Nil(t, err)
 

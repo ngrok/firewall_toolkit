@@ -9,13 +9,13 @@ MISSING_TOOLS=0
 BPFTOOL=`which bpftool`
 export CLANG=`which clang`
 
-if [ -z $BPFTOOL ]; then 
+if [ -z $BPFTOOL ]; then
     MISSING_TOOLS=1
-fi 
+fi
 
-if [ -z $CLANG ]; then 
+if [ -z $CLANG ]; then
     MISSING_TOOLS=1
-fi 
+fi
 
 if [ $MISSING_TOOLS -eq 1 ]; then
   echo "these tests require clang and bpftool, you might be able to do something like this:"

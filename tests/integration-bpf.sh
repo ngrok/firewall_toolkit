@@ -13,7 +13,7 @@ if [ -f /.dockerenv ]; then
 fi
 
 # quad9 dns
-TEST_IP="149.112.112.112"
+TEST_IP="203.0.113.112"
 
 begin_test "create table, chain and bpf rule"
 (
