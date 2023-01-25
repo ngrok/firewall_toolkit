@@ -27,7 +27,7 @@ type ManagedRules struct {
 
 // Create a rule manager
 func ManagerInit(ruleTarget RuleTarget, f RulesUpdateFunc, interval time.Duration, logger logger.Logger) (ManagedRules, error) {
-	c, err := nftables.New(nftables.AsLasting())
+	c, err := nftables.New()
 	if err != nil {
 		return ManagedRules{}, err
 	}

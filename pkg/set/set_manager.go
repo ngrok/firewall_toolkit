@@ -27,7 +27,7 @@ type ManagedSet struct {
 
 // Create a set manager
 func ManagerInit(set Set, f SetUpdateFunc, interval time.Duration, logger logger.Logger) (ManagedSet, error) {
-	c, err := nftables.New(nftables.AsLasting())
+	c, err := nftables.New()
 	if err != nil {
 		return ManagedSet{}, err
 	}
