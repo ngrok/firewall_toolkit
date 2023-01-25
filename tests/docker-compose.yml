@@ -6,13 +6,13 @@ services:
     restart: on-failure
     networks:
       integration:
-        ipv4_address: 172.200.1.100
+        ipv4_address: 192.0.2.100
     cap_add:
       - "NET_ADMIN"
-    command: 
+    command:
       ["tests/integration-wrapper.sh"]
 networks:
   integration:
     ipam:
       config:
-        - subnet: 172.200.1.0/24
+        - subnet: 192.0.2.0/24

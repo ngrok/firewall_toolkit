@@ -284,7 +284,7 @@ func TestGenerateSetElementsMismatchedIPVersionsV4(t *testing.T) {
 }
 
 func TestGenerateSetElementsMismatchedIPVersionsV6(t *testing.T) {
-	setData, err := AddressStringsToSetData([]string{"2001:1db8:85a3:1:1:8a2e:1370:7336-2001:1db8:85a3:1:1:8a2e:1370:7339"})
+	setData, err := AddressStringsToSetData([]string{"2001:db80:85a3:1:1:8a2e:1370:7336-2001:db80:85a3:1:1:8a2e:1370:7339"})
 	assert.Nil(t, err)
 
 	res, err := generateElements(nftables.TypeIPAddr, setData)
@@ -302,7 +302,7 @@ func TestGenerateSetElementsAddressInvalidRangeV4(t *testing.T) {
 }
 
 func TestGenerateSetElementsAddressInvalidRangeV6(t *testing.T) {
-	setData, err := AddressStringsToSetData([]string{"2001:1db8:85a3:1:1:8a2e:1370:7336-2001:1db8:85a3:1:1:8a2e:1370:7334"})
+	setData, err := AddressStringsToSetData([]string{"2001:db80:85a3:1:1:8a2e:1370:7336-2001:db80:85a3:1:1:8a2e:1370:7334"})
 	assert.Nil(t, err)
 
 	res, err := generateElements(nftables.TypeIP6Addr, setData)
@@ -406,7 +406,7 @@ func TestGenerateSetElementsAddressesV4Range(t *testing.T) {
 }
 
 func TestGenerateSetElementsAddressesV6Range(t *testing.T) {
-	processGoodSetElements(t, nftables.TypeIP6Addr, []string{"2001:1db8:85a3:1:1:8a2e:1370:7336-2001:1db8:85a3:1:1:8a2e:1370:7339"})
+	processGoodSetElements(t, nftables.TypeIP6Addr, []string{"2001:db80:85a3:1:1:8a2e:1370:7336-2001:db80:85a3:1:1:8a2e:1370:7339"})
 }
 
 func TestGenerateSetElementsAddressesV4(t *testing.T) {
@@ -414,7 +414,7 @@ func TestGenerateSetElementsAddressesV4(t *testing.T) {
 }
 
 func TestGenerateSetElementsAddressesV6(t *testing.T) {
-	processGoodSetElements(t, nftables.TypeIP6Addr, []string{"2001:1db8:85a3:1:1:8a2e:1370:7336"})
+	processGoodSetElements(t, nftables.TypeIP6Addr, []string{"2001:db80:85a3:1:1:8a2e:1370:7336"})
 }
 
 func TestGenerateSetElementsAddressesV4Prefix(t *testing.T) {
@@ -422,7 +422,7 @@ func TestGenerateSetElementsAddressesV4Prefix(t *testing.T) {
 }
 
 func TestGenerateSetElementsAddressesV6Prefix(t *testing.T) {
-	processGoodSetElements(t, nftables.TypeIP6Addr, []string{"2001:db8:1234::/48"})
+	processGoodSetElements(t, nftables.TypeIP6Addr, []string{"2001:db80:1234::/48"})
 }
 
 func TestGenerateSetElementsPort(t *testing.T) {
@@ -494,28 +494,28 @@ func TestRuleDataDelta(t *testing.T) {
 			[]SetData{{PortRangeStart: 8000, PortRangeEnd: 9000}},
 		},
 		{
-			map[SetData]struct{}{{Address: netip.MustParseAddr("192.168.0.0")}: {}},
-			[]SetData{{Address: netip.MustParseAddr("192.168.0.0")}, {Address: netip.MustParseAddr("192.168.0.1")}},
-			[]SetData{{Address: netip.MustParseAddr("192.168.0.1")}},
+			map[SetData]struct{}{{Address: netip.MustParseAddr("192.0.2.0")}: {}},
+			[]SetData{{Address: netip.MustParseAddr("192.0.2.0")}, {Address: netip.MustParseAddr("192.0.2.1")}},
+			[]SetData{{Address: netip.MustParseAddr("192.0.2.1")}},
 			[]SetData{},
 		},
 		{
 			map[SetData]struct{}{},
-			[]SetData{{Address: netip.MustParseAddr("192.168.0.0")}, {Address: netip.MustParseAddr("192.168.0.1")}},
-			[]SetData{{Address: netip.MustParseAddr("192.168.0.0")}, {Address: netip.MustParseAddr("192.168.0.1")}},
+			[]SetData{{Address: netip.MustParseAddr("192.0.2.0")}, {Address: netip.MustParseAddr("192.0.2.1")}},
+			[]SetData{{Address: netip.MustParseAddr("192.0.2.0")}, {Address: netip.MustParseAddr("192.0.2.1")}},
 			[]SetData{},
 		},
 		{
-			map[SetData]struct{}{{AddressRangeStart: netip.MustParseAddr("192.168.0.0"), AddressRangeEnd: netip.MustParseAddr("192.168.0.255")}: {}},
-			[]SetData{{Address: netip.MustParseAddr("192.168.0.5")}, {Address: netip.MustParseAddr("192.168.0.6")}},
-			[]SetData{{Address: netip.MustParseAddr("192.168.0.6")}, {Address: netip.MustParseAddr("192.168.0.5")}},
-			[]SetData{{AddressRangeStart: netip.MustParseAddr("192.168.0.0"), AddressRangeEnd: netip.MustParseAddr("192.168.0.255")}},
+			map[SetData]struct{}{{AddressRangeStart: netip.MustParseAddr("192.0.2.0"), AddressRangeEnd: netip.MustParseAddr("192.0.2.255")}: {}},
+			[]SetData{{Address: netip.MustParseAddr("192.0.2.5")}, {Address: netip.MustParseAddr("192.0.2.6")}},
+			[]SetData{{Address: netip.MustParseAddr("192.0.2.6")}, {Address: netip.MustParseAddr("192.0.2.5")}},
+			[]SetData{{AddressRangeStart: netip.MustParseAddr("192.0.2.0"), AddressRangeEnd: netip.MustParseAddr("192.0.2.255")}},
 		},
 		{
-			map[SetData]struct{}{{Prefix: netip.MustParsePrefix("192.168.0.0/16")}: {}},
-			[]SetData{{Prefix: netip.MustParsePrefix("192.168.0.0/24")}, {Prefix: netip.MustParsePrefix("192.168.1.0/24")}},
-			[]SetData{{Prefix: netip.MustParsePrefix("192.168.0.0/24")}, {Prefix: netip.MustParsePrefix("192.168.1.0/24")}},
-			[]SetData{{Prefix: netip.MustParsePrefix("192.168.0.0/16")}},
+			map[SetData]struct{}{{Prefix: netip.MustParsePrefix("192.0.2.0/16")}: {}},
+			[]SetData{{Prefix: netip.MustParsePrefix("192.0.2.0/24")}, {Prefix: netip.MustParsePrefix("192.168.1.0/24")}},
+			[]SetData{{Prefix: netip.MustParsePrefix("192.0.2.0/24")}, {Prefix: netip.MustParsePrefix("192.168.1.0/24")}},
+			[]SetData{{Prefix: netip.MustParsePrefix("192.0.2.0/16")}},
 		},
 	}
 
