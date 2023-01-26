@@ -4,14 +4,17 @@ package set
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/DataDog/datadog-go/v5/statsd"
 	"github.com/google/nftables"
 
 	"github.com/ngrok/firewall_toolkit/pkg/logger"
+	m "github.com/ngrok/firewall_toolkit/pkg/metrics"
 )
 
 type SetUpdateFunc func() ([]SetData, error)
@@ -23,13 +26,19 @@ type ManagedSet struct {
 	setUpdateFunc SetUpdateFunc
 	interval      time.Duration
 	logger        logger.Logger
+	metrics       m.Metrics
 }
 
-// Create a set manager
-func ManagerInit(set Set, f SetUpdateFunc, interval time.Duration, logger logger.Logger) (ManagedSet, error) {
+// Create a set manager.
+// Passing a nil metrics object is safe and will result in the "NoOp" client being used.
+func ManagerInit(set Set, f SetUpdateFunc, interval time.Duration, logger logger.Logger, metrics m.Metrics) (ManagedSet, error) {
 	c, err := nftables.New()
 	if err != nil {
 		return ManagedSet{}, err
+	}
+
+	if metrics == nil {
+		metrics = &statsd.NoOpClient{}
 	}
 
 	return ManagedSet{
@@ -38,6 +47,7 @@ func ManagerInit(set Set, f SetUpdateFunc, interval time.Duration, logger logger
 		setUpdateFunc: f,
 		interval:      interval,
 		logger:        logger,
+		metrics:       metrics,
 	}, nil
 }
 
@@ -61,20 +71,50 @@ func (s *ManagedSet) Start(ctx context.Context) error {
 			data, err := s.setUpdateFunc()
 			if err != nil {
 				s.logger.Errorf("error with set update function for table/set %v/%v: %v", s.set.set.Table.Name, s.set.set.Name, err)
+				err = s.metrics.Count(m.Prefix("manager_loop_update_func"), 1, s.genTags([]string{"success:false"}), 1)
+				if err != nil {
+					s.logger.Warnf("error sending manager_loop_update_func metric: %v", err)
+				}
 				continue
 			}
+			err = s.metrics.Count(m.Prefix("manager_loop_update_func"), 1, s.genTags([]string{"success:true"}), 1)
+			if err != nil {
+				s.logger.Warnf("error sending manager_loop_update_func metric: %v", err)
+			}
 
-			flush, err := s.set.UpdateElements(s.conn, data)
+			flush, added, deleted, err := s.set.UpdateElements(s.conn, data)
 			if err != nil {
 				s.logger.Errorf("error updating table/set %v/%v: %v", s.set.set.Table.Name, s.set.set.Name, err)
+				err = s.metrics.Count(m.Prefix("manager_loop_update_data"), 1, s.genTags([]string{"success:false"}), 1)
+				if err != nil {
+					s.logger.Warnf("error sending manager_loop_update_data metric: %v", err)
+				}
+				continue
+			}
+			// only flush if things went well above
+			if !flush {
 				continue
 			}
 
-			// only flush if things went well above
-			if flush {
-				if err := s.conn.Flush(); err != nil {
-					s.logger.Errorf("error flushing table/set %v/%v: %v", s.set.set.Table.Name, s.set.set.Name, err)
+			if err := s.conn.Flush(); err != nil {
+				s.logger.Errorf("error flushing table/set %v/%v: %v", s.set.set.Table.Name, s.set.set.Name, err)
+				err = s.metrics.Count(m.Prefix("manager_loop_flush"), 1, s.genTags([]string{"success:false"}), 1)
+				if err != nil {
+					s.logger.Warnf("error sending manager_loop_flush metric: %v", err)
 				}
+				continue
+			}
+			err = s.metrics.Count(m.Prefix("manager_loop_update_data_added"), int64(added), s.genTags([]string{}), 1)
+			if err != nil {
+				s.logger.Warnf("error sending manager_loop_update_data_added metric: %v", err)
+			}
+			err = s.metrics.Count(m.Prefix("manager_loop_update_data_deleted"), int64(deleted), s.genTags([]string{}), 1)
+			if err != nil {
+				s.logger.Warnf("error sending manager_loop_update_data_deleted metric: %v", err)
+			}
+			err = s.metrics.Count(m.Prefix("manager_loop_flush"), 1, s.genTags([]string{"success:true"}), 1)
+			if err != nil {
+				s.logger.Warnf("error sending manager_loop_flush metric: %v", err)
 			}
 		}
 	}
@@ -83,4 +123,14 @@ func (s *ManagedSet) Start(ctx context.Context) error {
 // Get the set this manager is operating on
 func (s *ManagedSet) GetSet() Set {
 	return s.set
+}
+
+func (s *ManagedSet) genTags(additional []string) []string {
+	defaultTags := []string{
+		"manager_type:set",
+		fmt.Sprintf("table:%s", s.set.set.Table.Name),
+		fmt.Sprintf("set:%s", s.set.set.Name),
+	}
+
+	return append(additional, defaultTags...)
 }

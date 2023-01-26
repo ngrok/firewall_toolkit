@@ -561,7 +561,9 @@ func TestUpdateElements(t *testing.T) {
 
 	setData, err := AddressStringToSetData("192.0.2.1")
 	assert.Nil(t, err)
-	modified, err := set.UpdateElements(c, []SetData{setData})
+	modified, added, removed, err := set.UpdateElements(c, []SetData{setData})
+	assert.Equal(t, added, 1)
+	assert.Equal(t, removed, 1)
 	assert.True(t, modified)
 	assert.Nil(t, err)
 	c.Flush()
