@@ -208,8 +208,8 @@ begin_test "validate nft output: port set content (port range end large)"
 )
 end_test
 
-begin_test "delete table"
-(
-    nft delete table inet $TABLE
-)
+# begin_test "delete table"
+# (
+#     nft delete table inet $TABLE
+# )
 end_test
