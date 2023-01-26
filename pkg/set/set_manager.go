@@ -91,6 +91,11 @@ func (s *ManagedSet) Start(ctx context.Context) error {
 				}
 				continue
 			}
+			err = s.metrics.Count(m.Prefix("manager_loop_update_data"), 1, s.genTags([]string{"success:true"}), 1)
+			if err != nil {
+				s.logger.Warnf("error sending manager_loop_update_data metric: %v", err)
+			}
+
 			// only flush if things went well above
 			if !flush {
 				continue
