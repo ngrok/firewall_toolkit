@@ -23,6 +23,7 @@ begin_test "validate nft output: hook"
 (
     $NFT_LIST_TABLE inet $TABLE
     $NFT_LIST_TABLE_JSON inet $TABLE | $JQ .nftables[].chain.hook | grep input
+    # python3 python_scripts/compare.py input.txt < $($NFT_LIST_TABLE inet $TABLE)
 )
 end_test
 

@@ -19,22 +19,25 @@ def compare(expected: dict, got: dict) -> int:
                 return 1
             case _ as k if k[0] in ignore:
                 continue
-            case _ as k if type(expected_val) != type(got_val):
-                return 1
+            # case _ as k if type(expected_val) != type(got_val):
+            #     return 1
             case _ as k if expected_val != got_val:
                 return 1
+            # <class 'dict'> == <class 'dict>
             case _ as k if type(expected_val) == type({}):
-                print("deepen")
-                if compare(expected_val,got_val):
+                if compare(expected_val,got_val) == 1:
                     return 1
             #kind sketchy ngl
+            #[ {} , {} , {} ] e
+            #[ {} , {} , {} ] g
             case _ as k if type(expected_val) == type([]):
                 for v1,v2 in zip(expected_val,got_val):
-                    if v1 != v2:
-                        return 1
                     if type(v1) == type({}):
-                        if compare(v1,v2):
+                        if compare(v1,v2) == 1:
                             return 1
+                    elif v1 != v2:
+                        return 1
+
             case _:
                 continue
     return 0
