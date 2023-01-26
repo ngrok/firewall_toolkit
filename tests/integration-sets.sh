@@ -6,7 +6,7 @@ export BASEDIR=$(cd $(dirname "$0") && cd .. && pwd)
 . "$BASEDIR/tests/include/common.sh"
 . "$BASEDIR/tests/include/testlib.sh"
 
-SERVER_IP=172.200.1.100
+SERVER_IP=192.0.2.100
 CLIENT_IP=$(head -n 1 $BASEDIR/tests/integration_ip.list)
 
 CURL_TIMEOUT=3
@@ -132,10 +132,10 @@ begin_test "add port 8000 back to the list"
 )
 end_test
 
-begin_test "add ip range (172.200.1.101-172.200.1.105) to the list"
+begin_test "add ip range (192.0.2.101-192.0.2.105) to the list"
 (
     $DOCKER_COMPOSE_EXEC $NFT_LIST_TABLE inet $TABLE
-    $DOCKER_COMPOSE_EXEC bash -c "echo '172.200.1.101-172.200.1.105' > $TEST_IP_LIST_PATH"
+    $DOCKER_COMPOSE_EXEC bash -c "echo '192.0.2.101-192.0.2.105' > $TEST_IP_LIST_PATH"
 )
 end_test
 

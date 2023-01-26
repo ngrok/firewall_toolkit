@@ -134,28 +134,28 @@ end_test
 begin_test "validate nft output: ipv6 set content (single ip)"
 (
     $NFT_LIST_TABLE inet $TABLE
-    $NFT_LIST_TABLE_JSON inet $TABLE | $JQ '.nftables[].set | select(.name == "ipv6_blocklist") | .elem[].elem.val' | grep 2001:1db8:85a3:1:1:8a2e:1370:7334
+    $NFT_LIST_TABLE_JSON inet $TABLE | $JQ '.nftables[].set | select(.name == "ipv6_blocklist") | .elem[].elem.val' | grep 2001:db80:85a3:1:1:8a2e:1370:7334
 )
 end_test
 
 begin_test "validate nft output: ipv6 set content (range start)"
 (
     $NFT_LIST_TABLE inet $TABLE
-    $NFT_LIST_TABLE_JSON inet $TABLE | $JQ '.nftables[].set | select(.name == "ipv6_blocklist") | .elem[].elem.val' | grep -A1 range | tail -n 1 | grep 2001:1db8:85a3:1:1:8a2e:1370:7336
+    $NFT_LIST_TABLE_JSON inet $TABLE | $JQ '.nftables[].set | select(.name == "ipv6_blocklist") | .elem[].elem.val' | grep -A1 range | tail -n 1 | grep 2001:db80:85a3:1:1:8a2e:1370:7336
 )
 end_test
 
 begin_test "validate nft output: ipv6 set content (range end)"
 (
     $NFT_LIST_TABLE inet $TABLE
-    $NFT_LIST_TABLE_JSON inet $TABLE | $JQ '.nftables[].set | select(.name == "ipv6_blocklist") | .elem[].elem.val' | grep -A2 range | tail -n 1 | grep 2001:1db8:85a3:1:1:8a2e:1370:7339
+    $NFT_LIST_TABLE_JSON inet $TABLE | $JQ '.nftables[].set | select(.name == "ipv6_blocklist") | .elem[].elem.val' | grep -A2 range | tail -n 1 | grep 2001:db80:85a3:1:1:8a2e:1370:7339
 )
 end_test
 
 begin_test "validate nft output: ipv6 set content (cidr address)"
 (
     $NFT_LIST_TABLE inet $TABLE
-    $NFT_LIST_TABLE_JSON inet $TABLE | $JQ '.nftables[].set | select(.name == "ipv6_blocklist") | .elem[].elem.val' | grep -A1 prefix | tail -n 1 | grep 2001:db8:1234
+    $NFT_LIST_TABLE_JSON inet $TABLE | $JQ '.nftables[].set | select(.name == "ipv6_blocklist") | .elem[].elem.val' | grep -A1 prefix | tail -n 1 | grep 2001:db80:1234
 )
 end_test
 
@@ -208,8 +208,8 @@ begin_test "validate nft output: port set content (port range end large)"
 )
 end_test
 
-# begin_test "delete table"
-# (
-#     nft delete table inet $TABLE
-# )
+begin_test "delete table"
+(
+    nft delete table inet $TABLE
+)
 end_test

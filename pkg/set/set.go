@@ -103,9 +103,11 @@ func New(c *nftables.Conn, table *nftables.Table, name string, keyType nftables.
 	}, nil
 }
 
-// Compares incoming set elements with existing set elements and adds/removes the differences
-// First return value is true if the set was modified, false if there were no updates
-func (s *Set) UpdateElements(c *nftables.Conn, newSetData []SetData) (bool, error) {
+// Compares incoming set elements with existing set elements and adds/removes the differences.
+//
+// First return value is true if the set was modified, false if there were no updates. The second
+// and third return values indicate the number of values added and removed from the set, respectively.
+func (s *Set) UpdateElements(c *nftables.Conn, newSetData []SetData) (bool, int, int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -114,7 +116,7 @@ func (s *Set) UpdateElements(c *nftables.Conn, newSetData []SetData) (bool, erro
 	// If we haven't initialized CurrentSetData, don't need
 	// the update logic, can just add everything
 	if s.currentSetData == nil {
-		return true, s.ClearAndAddElements(c, newSetData)
+		return true, len(newSetData), 0, s.ClearAndAddElements(c, newSetData)
 	}
 
 	addSetData, removeSetData := s.genSetDataDelta(newSetData)
@@ -126,11 +128,11 @@ func (s *Set) UpdateElements(c *nftables.Conn, newSetData []SetData) (bool, erro
 
 		removeElems, err := generateElements(s.set.KeyType, removeSetData)
 		if err != nil {
-			return false, fmt.Errorf("generating set elements failed for %v: %v", s.set.Name, err)
+			return false, 0, 0, fmt.Errorf("generating set elements failed for %v: %v", s.set.Name, err)
 		}
 
 		if err = c.SetDeleteElements(s.set, removeElems); err != nil {
-			return false, fmt.Errorf("nftables delete set elements failed for %v: %v", s.set.Name, err)
+			return false, 0, 0, fmt.Errorf("nftables delete set elements failed for %v: %v", s.set.Name, err)
 		}
 
 		for _, elem := range removeSetData {
@@ -143,11 +145,11 @@ func (s *Set) UpdateElements(c *nftables.Conn, newSetData []SetData) (bool, erro
 
 		addElems, err := generateElements(s.set.KeyType, addSetData)
 		if err != nil {
-			return false, fmt.Errorf("generating set elements failed for %v: %v", s.set.Name, err)
+			return false, 0, 0, fmt.Errorf("generating set elements failed for %v: %v", s.set.Name, err)
 		}
 
 		if err = c.SetAddElements(s.set, addElems); err != nil {
-			return false, fmt.Errorf("nftables add set elements failed for %v: %v", s.set.Name, err)
+			return false, 0, 0, fmt.Errorf("nftables add set elements failed for %v: %v", s.set.Name, err)
 		}
 
 		for _, elem := range addSetData {
@@ -155,7 +157,7 @@ func (s *Set) UpdateElements(c *nftables.Conn, newSetData []SetData) (bool, erro
 		}
 	}
 
-	return modified, nil
+	return modified, len(addSetData), len(removeSetData), nil
 }
 
 // Remove all elements from the set and then add a list of elements

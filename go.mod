@@ -3,6 +3,7 @@ module github.com/ngrok/firewall_toolkit
 go 1.19
 
 require (
+	github.com/DataDog/datadog-go/v5 v5.2.0
 	github.com/gaissmai/extnetip v0.3.3
 	github.com/google/gopacket v1.1.19
 	github.com/google/nftables v0.1.1-0.20221212161945-2a00dee9fcbe
@@ -15,6 +16,7 @@ require (
 )
 
 require (
+	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/josharian/native v1.1.0 // indirect
