@@ -1,6 +1,6 @@
 {
 	"id": "63d2ab53f08c95abd3f5b415",
-	"children": [
+	"children":
 		{
 			"name": "Tandy Christensen",
 			"age": 5,
@@ -13,23 +13,6 @@
 		        }
 		    }
 		},
-		{
-			"name": "Chance Alexander",
-			"age": 10
-		},
-		{
-			"name": "Sage Fox",
-			"age": 8
-		},
-		{
-			"name": "Rojas Kelly",
-			"age": 6
-		},
-		{
-			"name": "Dae Figueroa",
-			"age": 1
-		}
-	],
 	"currentJob": {
 		"title": "Developer",
 		"salary": "mask;"
