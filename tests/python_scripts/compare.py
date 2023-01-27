@@ -1,60 +1,64 @@
-from typing import Any
+from typing import Any, Optional
 import sys
 import json
 
 ignore: list[str] = [ "metainfo", "handle" ]
 
-def compare(expected: dict[str,Any], got: dict[str,Any]) -> tuple[int,str]:
-    for expected_key,got_key in zip(expected,got):
-        expected_val: Any = expected[expected_key]
-        got_val: Any = got[got_key]
-        match (expected_key,got_key):
-            case _ as keys if keys[0] != keys[1]:
-                msg : str = "FAIL: keys do not match. expected: " + keys[0] + " got: " + keys[1]
-                return (1, msg)
+def value_error(e: Any,g: Any) -> tuple[int,str]:
+    msg : str = "FAIL: values do not match."
+    if type(e) != (type({}) and type([])):
+        msg += " expected: " + str(e) + " received: " + str(g)
+    else:
+        msg += " diff inside of " + str(type(e)) + " type"
+    return (1, msg)
 
+def key_error(keys: Optional[tuple[str,str]]) -> tuple[int,str]:
+    if keys is None:
+        msg: str = "FAIL: key not found in expected"
+    else:
+        msg : str = "FAIL: keys do not match. expected: " + keys[0] + " received: " + keys[1]
+    return (1, msg)
+
+
+
+def compare(expected: dict[str,Any], received: dict[str,Any]) -> tuple[int,str]:
+    for expected_key,received_key in zip(expected,received):
+        expected_val: Any = expected[expected_key]
+        received_val: Any = received[received_key]
+        match (expected_key,received_key):
+            case _ as keys if keys[0] != keys[1]:
+                return key_error(keys)
             case _ as keys if keys[0] in ignore:
                 continue
-
-            case _ as keys if expected_val != got_val:
-                msg : str = "FAIL: values do not match."
-                if type(expected_val) != (type({}) and type([])):
-                    msg += " expected: " + str(expected_val) + " got: " + str(got_val)
-                else:
-                    msg += " diff inside of " + str(type(expected_val)) + " type"
-                return (1, msg)
+            case _ as keys if expected_val != received_val:
+                return value_error(expected_val,received_val)
 
             case _ as keys if type(expected_val) == type({}):
-                child_dict_ouput: tuple[int,str] = compare(expected_val,got_val)
+                child_dict_ouput: tuple[int,str] = compare(expected_val,received_val)
                 if child_dict_ouput[0] == 1:
                     return child_dict_ouput
 
             case _ as keys if type(expected_val) == type([]):
-                for v1,v2 in zip(expected_val,got_val):
-                    if type(v1) == type({}):
-                         child_dict_ouput: tuple[int,str] = compare(v1,v2)
+                for e,r in zip(expected_val,received_val):
+                    if type(e) == type({}):
+                         child_dict_ouput: tuple[int,str] = compare(e,r)
                          if child_dict_ouput[0] == 1:
                              return child_dict_ouput
-                    elif v1 != v2:
-                        msg : str = "FAIL: values do not match"
-                        if type(v1) != (type({}) and type([])):
-                            msg += " expected: " + str(v1) + " got: " + str(v2)
-                        else:
-                             msg += " diff inside of " + str(type(v1)) + " type"
-                        return (1,msg)
+                    elif e != r:
+                        return value_error(e,r)
             case _:
                 continue
 
-    for got_key in got:
-        if got_key not in expected:
-            msg: str = "FAIL: key not found in expected nftable"
-            return (1, msg)
+    for received_key in received:
+        if received_key not in expected:
+            return key_error(None)
 
     return (0,"PASS: exited successfully")
 
 
 if __name__ == "__main__":
     expected: dict[str,Any] = json.load(sys.stdin)
-    got: dict[str,Any] = json.load(open(sys.argv[1], 'r'))
-    val: tuple[int,str] = compare(expected,got)
+    received: dict[str,Any] = json.load(open(sys.argv[1], 'r'))
+    val: tuple[int,str] = compare(expected,received)
+    print(val)
     sys.exit(val[0])

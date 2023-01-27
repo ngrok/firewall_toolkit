@@ -1,14 +1,14 @@
 {
   "nftables": [
     {
-      "etainfo": {
+      "metainfo": {
         "version": "1.0.6",
         "release_name": "Lester Gooch #5",
         "json_schema_version": 1
       }
     },
     {
-      "able": {
+      "table": {
         "family": "inet",
         "name": "prefixpolicies",
         "handle": 4
@@ -16,7 +16,7 @@
     },
     {
       "set": {
-        "amily": "inet",
+        "family": "ERR",
         "name": "ipv4_blocklist",
         "table": "prefixpolicies",
         "type": "ipv4_addr",
@@ -25,7 +25,7 @@
           "interval"
         ],
         "elem": [
-          "18.133.241.25",
+          "18.133.241.251",
           "24.234.155.133",
           "40.68.204.18",
           "66.76.205.93",
