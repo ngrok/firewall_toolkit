@@ -92,6 +92,11 @@ func (r *ManagedRules) Start(ctx context.Context) error {
 					r.logger.Warnf("error sending manager_loop_update_data metric: %v", err)
 				}
 			}
+			err = r.metrics.Count(m.Prefix("manager_loop_update_data"), 1, r.genTags([]string{"success:true"}), 1)
+			if err != nil {
+				r.logger.Warnf("error sending manager_loop_update_data metric: %v", err)
+			}
+
 			// only flush if things went well above
 			if !flush {
 				continue
