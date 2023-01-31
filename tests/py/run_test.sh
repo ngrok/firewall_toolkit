@@ -4,7 +4,8 @@ i=0
 j=0
 for e in sample_inputs/*
 do
-    echo "Comparing $e to $e"
+    echo "${e##*/}"    # print everything after the final "/"
+    echo "Comparing ${e##*/} to ${e##*/}"
     cat $e | python3 compare.py $e
     echo "EXIT CODE: $?"
     echo "+++"
@@ -12,7 +13,7 @@ do
     do
         if [[ $i -ne $j ]]
         then
-            echo "Comparing $e to $r"
+            echo "Comparing ${e##*/} to ${r##*/}"
             cat $r | python3 compare.py $e
             echo "EXIT CODE: $?"
             echo "+++"
