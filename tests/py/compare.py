@@ -4,12 +4,8 @@ import json
 
 ignore: list[str] = [ "metainfo", "handle" ]
 
-def value_error(e: Any,g: Any) -> tuple[int,str]:
-    msg : str = "FAIL: values do not match."
-    if type(e) != (type({}) and type([])):
-        msg += " expected: " + str(e) + " received: " + str(g)
-    else:
-        msg += " diff inside of " + str(type(e)) + " type"
+def value_error(key: str) -> tuple[int,str]:
+    msg : str = "FAIL: values do not match in " + key
     return (1, msg)
 
 def key_error(keys: Optional[tuple[str,str]]) -> tuple[int,str]:
@@ -31,7 +27,7 @@ def compare(expected: dict[str,Any], received: dict[str,Any]) -> tuple[int,str]:
             case _ as keys if keys[0] in ignore:
                 continue
             case _ as keys if expected_val != received_val:
-                return value_error(expected_val,received_val)
+                return value_error(keys[0])
 
             case _ as keys if type(expected_val) == type({}):
                 child_dict_ouput: tuple[int,str] = compare(expected_val,received_val)
@@ -45,7 +41,7 @@ def compare(expected: dict[str,Any], received: dict[str,Any]) -> tuple[int,str]:
                          if child_dict_ouput[0] == 1:
                              return child_dict_ouput
                     elif e != r:
-                        return value_error(e,r)
+                        return value_error(e)
             case _:
                 continue
 
@@ -60,5 +56,5 @@ if __name__ == "__main__":
     expected : dict[str,Any] = json.load(open(sys.argv[1], 'r'))
     received : dict[str,Any] = json.load(sys.stdin)
     val: tuple[int,str] = compare(expected,received)
-    print(val)
+    sys.stdout.write(val[1] + "\n")
     sys.exit(val[0])
