@@ -18,6 +18,6 @@ NFT_LIST_TABLE_JSON="$NFT -j list table"
 TABLE="compat-test"
 CHAIN="filter"
 
-# # clean up
-# nft delete table ip $TABLE &> /dev/null || true
-# nft delete table inet $TABLE &> /dev/null || true
+# clean up
+nft delete table ip $TABLE &> /dev/null || true
+nft delete table inet $TABLE &> /dev/null || true
