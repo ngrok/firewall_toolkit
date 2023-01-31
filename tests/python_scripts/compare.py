@@ -57,8 +57,8 @@ def compare(expected: dict[str,Any], received: dict[str,Any]) -> tuple[int,str]:
 
 
 if __name__ == "__main__":
-    expected: dict[str,Any] = json.load(sys.stdin)
-    received: dict[str,Any] = json.load(open(sys.argv[1], 'r'))
+    expected : dict[str,Any] = json.load(open(sys.argv[1], 'r'))
+    received : dict[str,Any] = json.load(sys.stdin)
     val: tuple[int,str] = compare(expected,received)
     print(val)
     sys.exit(val[0])
