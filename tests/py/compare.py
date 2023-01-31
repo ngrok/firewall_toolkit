@@ -18,6 +18,11 @@ def key_error(keys: Optional[tuple[str,str]]) -> tuple[int,str]:
 
 
 def compare(expected: dict[str,Any], received: dict[str,Any]) -> tuple[int,str]:
+
+    if len(expected) == 0 or len(received) == 0:
+        return (1, "FAIL: empty dict")
+
+
     for expected_key,received_key in zip(expected,received):
         expected_val: Any = expected[expected_key]
         received_val: Any = received[received_key]
