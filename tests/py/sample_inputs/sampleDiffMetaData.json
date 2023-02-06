@@ -11,7 +11,7 @@
       "table": {
         "family": "inet",
         "name": "prefixpolicies",
-        "handle": 4
+        "handle": 3
       }
     },
     {
@@ -43,7 +43,7 @@
         "name": "ipv6_blocklist",
         "table": "prefixpolicies",
         "type": "ipv6_addr",
-        "handle": 3,
+        "handle": 2,
         "flags": [
           "interval"
         ]
