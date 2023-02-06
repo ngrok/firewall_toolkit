@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 import sys
 import json
 
@@ -7,7 +7,7 @@ ignore: list[str] = [ "metainfo", "handle" ]
 
 #TODO NEEDS TO BE TYPED IMPORTING OPTIONAL IS NOT WORKING
 #key: Optional[str], keys: Optional[tuple[str,str], expected: Optional[int], received: Optional[int]
-def err_handler(key, keys, expected , received) -> tuple[int, str]:
+def err_handler(key: Optional[str], keys: Optional[tuple[str,str]], e: Optional[int] , r: Optional[int]) -> tuple[int, str]:
     if key:
         msg : str = "FAIL: values of key: \"" + key + "\" do not match"
         return (1, msg)
@@ -15,19 +15,9 @@ def err_handler(key, keys, expected , received) -> tuple[int, str]:
         msg : str = "FAIL: keys do not match. expected: \"" + keys[0] + "\" received: \"" + keys[1] + "\""
         return (1, msg)
     elif expected:
-        return (1, "FAIL: given dicts of differnt len. expected: " + str(expected) + " received: " + str(received))
+        return (1, "FAIL: given dicts of differnt len. expected: " + str(e) + " received: " + str(r))
 
     return (1, "FAIL: given json of len: 0")
-
-# def value_error(key: str) -> tuple[int, str]:
-#     msg : str = "FAIL: values of key: \"" + key + "\" do not match"
-#     return (1, msg)
-
-
-# def key_error(keys: tuple[str, str]) -> tuple[int, str]:
-#     msg : str = "FAIL: keys do not match. expected: \"" + keys[0] + "\" received: \"" + keys[1] + "\""
-#     return (1, msg)
-
 
 def compare(expected: dict[str,Any], received: dict[str,Any]) -> tuple[int,str]:
 
