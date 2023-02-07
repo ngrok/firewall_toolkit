@@ -12,7 +12,10 @@ input-filter-bpf:
 test:
 	go test $(GOFLAGS) -race -cover -coverprofile=coverage.out ./...
 
-compat-test: input-filter-sets input-filter-bpf
+python-doctest:
+	python3 -m doctest -v tests/py/compare.py
+
+compat-test: input-filter-sets input-filter-bpf python-doctest
 	bash tests/compat-sets.sh
 	bash tests/compat-bpf.sh
 
