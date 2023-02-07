@@ -73,7 +73,7 @@ begin_test "create table, chain and bpf rule"
 )
 end_test
 
-begin_test "python compare"
+begin_test "json diff"
 (
     $NFT_LIST_TABLE_JSON ip $TABLE | python3 $BASEDIR/tests/py/compare.py $BASEDIR/tests/fixtures/compat-bpf-pinned.json
 )

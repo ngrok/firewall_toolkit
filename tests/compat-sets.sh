@@ -19,7 +19,7 @@ begin_test "rules should already exist"
 )
 end_test
 
-begin_test "python compare"
+begin_test "json diff"
 (
     $NFT_LIST_TABLE_JSON inet $TABLE | python3 $BASEDIR/tests/py/compare.py $BASEDIR/tests/fixtures/compat-sets.json
 )
