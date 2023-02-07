@@ -46,7 +46,7 @@ end_test
 
 begin_test "json diff"
 (
-    $NFT_LIST_TABLE_JSON ip $TABLE | python3 $BASEDIR/tests/py/compare.py $BASEDIR/tests/fixtures/ip-fixture-filter.json
+    $NFT_LIST_TABLE_JSON ip $TABLE | python3 $BASEDIR/tests/py/compare.py $BASEDIR/tests/fixtures/compat-bpf-filter.json
 )
 end_test
 begin_test "delete table"
@@ -75,7 +75,7 @@ end_test
 
 begin_test "python compare"
 (
-    $NFT_LIST_TABLE_JSON ip $TABLE | python3 $BASEDIR/tests/py/compare.py $BASEDIR/tests/fixtures/ip-fixture-pinned.json
+    $NFT_LIST_TABLE_JSON ip $TABLE | python3 $BASEDIR/tests/py/compare.py $BASEDIR/tests/fixtures/compat-bpf-pinned.json
 )
 end_test
 begin_test "delete table"

@@ -21,7 +21,7 @@ end_test
 
 begin_test "python compare"
 (
-    $NFT_LIST_TABLE_JSON inet $TABLE | python3 $BASEDIR/tests/py/compare.py $BASEDIR/tests/fixtures/inet-fixture.json
+    $NFT_LIST_TABLE_JSON inet $TABLE | python3 $BASEDIR/tests/py/compare.py $BASEDIR/tests/fixtures/compat-sets.json
 )
 end_test
 
