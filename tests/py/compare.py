@@ -24,7 +24,7 @@ def compare(expected: dict[str,Any], received: dict[str,Any]) -> tuple[int,str]:
     (1, 'FAIL: values of key: "a" do not match')
     >>> compare({ "b" : 1 }, { "a" : 1 })
     (1, 'FAIL: keys do not match. expected: "b" received: "a"')
-    >>> compare({ "metainfo" : 1 , "b" : 1 }, { "metainfo" : 2, "a" : 1 })
+    >>> compare({ "handle" : 1 , "b" : 1 }, { "handle" : 2, "a" : 1 })
     (1, 'FAIL: keys do not match. expected: "b" received: "a"')
     >>> compare({ "a" : 1, "b": 1 }, { "a" : 1 })
     (1, 'FAIL: given dicts of differnt len. expected: 2 received: 1')
