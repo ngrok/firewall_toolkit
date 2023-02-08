@@ -99,7 +99,4 @@ if __name__ == "__main__":
     received : dict[str, Any] = json.load(sys.stdin)
     val: tuple[int, str] = compare(expected, received)
     sys.stdout.write(val[1] + "\n")
-    sys.stdout.write(str(expected))
-    sys.stdout.write("A LINE \n")
-    sys.stdout.write(str(received))
     sys.exit(val[0])
