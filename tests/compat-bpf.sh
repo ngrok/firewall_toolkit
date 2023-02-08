@@ -84,3 +84,8 @@ begin_test "delete table"
 )
 end_test
 
+begin_test "unlink ebpf"
+(
+    sudo unlink /sys/fs/bpf/fwtk
+)
+end_test
