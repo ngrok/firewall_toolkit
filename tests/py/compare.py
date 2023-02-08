@@ -3,13 +3,11 @@ import sys
 import json
 
 
-ignore: list[str] = [ "metainfo", "handle" ]
-def err_handler(key: Optional[str], keys: Optional[tuple[str,str]], e: Optional[int] , r: Optional[int]) -> tuple[int, str]:
+ignore: list[str] = [ "metainfo", "handle", "stmt" ]
+
+def err_handler(key: Optional[str], e: Optional[int] , r: Optional[int]) -> tuple[int, str]:
     if key:
         msg : str = "FAIL: values of key: \"" + key + "\" do not match"
-        return (1, msg)
-    elif keys:
-        msg : str = "FAIL: keys do not match. expected: \"" + keys[0] + "\" received: \"" + keys[1] + "\""
         return (1, msg)
     elif e:
         return (1, "FAIL: given dicts of differnt len. expected: " + str(e) + " received: " + str(r))
@@ -23,11 +21,13 @@ def compare(expected: dict[str,Any], received: dict[str,Any]) -> tuple[int,str]:
     >>> compare({ "metainfo" : 1 , "a" : 2 }, { "metainfo" : 2, "a" : 1 })
     (1, 'FAIL: values of key: "a" do not match')
     >>> compare({ "b" : 1 }, { "a" : 1 })
-    (1, 'FAIL: keys do not match. expected: "b" received: "a"')
+    (1, 'Fail: Expected key not in received')
     >>> compare({ "handle" : 1 , "b" : 1 }, { "handle" : 2, "a" : 1 })
-    (1, 'FAIL: keys do not match. expected: "b" received: "a"')
+    (1, 'Fail: Expected key not in received')
     >>> compare({ "a" : 1, "b": 1 }, { "a" : 1 })
-    (1, 'FAIL: given dicts of differnt len. expected: 2 received: 1')
+    (1, 'Fail: Expected key not in received')
+    >>> compare({ "a" : 1 }, { "a" : 1, "b": 1 })
+    (1, 'Fail: received key not in expected')
     >>> compare({ "a" : 1 }, {})
     (1, 'FAIL: given dict of len: 0')
     >>> compare({}, { "a" : 1 })
@@ -46,25 +46,23 @@ def compare(expected: dict[str,Any], received: dict[str,Any]) -> tuple[int,str]:
     (0, 'PASS: exited successfully')
     >>> compare({ "metainfo" : 1 , "a" : 1 }, { "metainfo" : 2, "a" : 1 })
     (0, 'PASS: exited successfully')
+    >>> compare({ "a" : 1 }, { "stmt" : 2, "a" : 1 })
+    (0, 'PASS: exited successfully')
     """
-
     if len(expected) == 0 and len(received) == 0:
         return (0,"PASS: exited successfully")
     elif len(expected) == 0 or len(received) == 0:
-        return err_handler(None,None,None,None)
-    elif len(expected) != len(received):
-        return err_handler(None,None,len(expected),len(received))
-    #else
-    for expected_key, received_key in zip(expected, received):
-        expected_val: Any = expected[expected_key]
-        received_val: Any = received[received_key]
+        return err_handler(None,None,None)
+
+    for key in expected:
         #key Checking
-        match (expected_key,received_key):
-            case _ as keys if keys[0] != keys[1]:
-                return err_handler(None,keys,None,None)
-                # return key_error(keys)
-            case _ as keys if keys[0] in ignore:
+        match key:
+            case key if key in ignore:
                 continue
+            case key if key not in received:
+                return (1, "Fail: Expected key not in received")
+        expected_val: Any = expected[key]
+        received_val: Any = received[key]
         #value checking
         match (expected_val,received_val):
             case _ as vals if type(vals[0]) == type({}):
@@ -78,11 +76,20 @@ def compare(expected: dict[str,Any], received: dict[str,Any]) -> tuple[int,str]:
                          if child_dict_ouput[0] == 1:
                              return child_dict_ouput
                     elif v1 != v2:
-                        return err_handler(str(v1),None,None,None)
+                        return err_handler(str(v1),None,None)
                         # return value_error(v1)
             case _ as vals if vals[0] != vals[1]:
-                return err_handler(str(expected_key),None,None,None)
+                return err_handler(str(key),None,None)
                 # return value_error(expected_key)
+
+    for key in received:
+        match key:
+            case key if key in ignore:
+                continue
+            case key if key not in expected:
+                return (1, "Fail: received key not in expected")
+
+
 
     return (0,"PASS: exited successfully")
 
@@ -92,4 +99,7 @@ if __name__ == "__main__":
     received : dict[str, Any] = json.load(sys.stdin)
     val: tuple[int, str] = compare(expected, received)
     sys.stdout.write(val[1] + "\n")
+    sys.stdout.write(str(expected))
+    sys.stdout.write("A LINE \n")
+    sys.stdout.write(str(received))
     sys.exit(val[0])
