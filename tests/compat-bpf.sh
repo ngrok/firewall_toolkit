@@ -44,34 +44,11 @@ begin_test "rule should already exist"
 )
 end_test
 
-begin_test "validate nft output: hook"
+begin_test "json diff"
 (
-    $NFT_LIST_TABLE ip $TABLE
-    $NFT_LIST_TABLE_JSON ip $TABLE | $JQ .nftables[].chain.hook | grep input
+    $NFT_LIST_TABLE_JSON ip $TABLE | python3 $BASEDIR/tests/py/compare.py $BASEDIR/tests/fixtures/compat-bpf-filter.json
 )
 end_test
-
-begin_test "validate nft output: priority"
-(
-    $NFT_LIST_TABLE ip $TABLE
-    $NFT_LIST_TABLE_JSON ip $TABLE | $JQ .nftables[].chain.type | grep filter
-)
-end_test
-
-begin_test "validate nft output: xt field"
-(
-    $NFT_LIST_TABLE ip $TABLE
-    $NFT_LIST_TABLE_JSON ip $TABLE | $JQ .nftables[].rule.expr | grep xt
-)
-end_test
-
-begin_test "validate nft output: drop verdict"
-(
-    $NFT_LIST_TABLE ip $TABLE
-    $NFT_LIST_TABLE_JSON ip $TABLE | $JQ .nftables[].rule.expr | grep drop
-)
-end_test
-
 begin_test "delete table"
 (
     nft delete table ip $TABLE
@@ -96,20 +73,11 @@ begin_test "create table, chain and bpf rule"
 )
 end_test
 
-begin_test "validate nft output: xt field"
+begin_test "json diff"
 (
-    $NFT_LIST_TABLE ip $TABLE
-    $NFT_LIST_TABLE_JSON ip $TABLE | $JQ .nftables[].rule.expr | grep xt
+    $NFT_LIST_TABLE_JSON ip $TABLE | python3 $BASEDIR/tests/py/compare.py $BASEDIR/tests/fixtures/compat-bpf-pinned.json
 )
 end_test
-
-begin_test "validate nft output: drop verdict"
-(
-    $NFT_LIST_TABLE ip $TABLE
-    $NFT_LIST_TABLE_JSON ip $TABLE | $JQ .nftables[].rule.expr | grep drop
-)
-end_test
-
 begin_test "delete table"
 (
     nft delete table ip $TABLE
