@@ -145,6 +145,15 @@ func Equals(data []byte, reg uint32) *expr.Cmp {
 	}
 }
 
+// Returns a not-equal comparison expression
+func NotEquals(data []byte, reg uint32) *expr.Cmp {
+	return &expr.Cmp{
+		Op:       expr.CmpOpNeq,
+		Register: reg,
+		Data:     data,
+	}
+}
+
 // Returns an accept verdict expression
 func Accept() *expr.Verdict {
 	return &expr.Verdict{
@@ -368,4 +377,66 @@ func CompareDestinationPortSet(set *nftables.Set) ([]expr.Any, error) {
 // Returns a list of expressions that will compare the destination port of traffic against a set, with a user defined register
 func CompareDestinationPortSetWithRegister(set *nftables.Set, reg uint32) ([]expr.Any, error) {
 	return []expr.Any{DestinationPort(reg), PortSetLookUp(set, reg)}, nil
+}
+
+func BitwiseWithRegisters(sourceRegister uint32, destRegister uint32, length uint32, mask []byte, xor []byte) *expr.Bitwise {
+	return &expr.Bitwise{
+		SourceRegister: sourceRegister,
+		DestRegister:   destRegister,
+		Len:            length,
+		Mask:           mask,
+		Xor:            xor,
+	}
+}
+
+func Bitwise(length uint32, mask []byte, xor []byte) *expr.Bitwise {
+	return BitwiseWithRegisters(defaultRegister, defaultRegister, length, mask, xor)
+}
+
+func LoadCtByKeyWithRegister(ctKey expr.CtKey, reg uint32) (*expr.Ct, error) {
+	// Current upper and lower bound for valid CtKey values
+	if ctKey < expr.CtKeySTATE || ctKey > expr.CtKeyEVENTMASK {
+		return &expr.Ct{}, fmt.Errorf("invalid CtKey given")
+	}
+
+	return &expr.Ct{
+		Register: reg,
+		Key:      ctKey,
+	}, nil
+}
+
+func LoadCtByKey(ctKey expr.CtKey) (*expr.Ct, error) {
+	return LoadCtByKeyWithRegister(ctKey, defaultRegister)
+}
+
+// Makes the comparison specified by `mask` to the CT State already loaded in `reg`.
+// Valid values for mask are:
+// expr.CtStateBitInvalid = 1
+// expr.CtStateBitESTABLISHED = 2
+// expr.CtStateBitRELATED = 4
+// expr.CtStateBitNEW = 8
+// expr.CtStateBitUNTRACKED = 64
+// Or combinations with a bitwise OR: `expr.CtStateBitNEW | expr.CtStateBitUNTRACKED`
+func CompareCtStateWithRegister(reg uint32, mask uint32) ([]expr.Any, error) {
+	if mask == 0 {
+		return []expr.Any{}, fmt.Errorf("invalid input mask, mask cannot be empty")
+	}
+	// Assuming any combination of the listed values are valid, the only "invalid"
+	// values are ones where a bit in the uint32 is set where that bit doesn't
+	// represent a value. I.e., the bit for 16 doesn't map to a valid value, so
+	// if it is set, it's invalid.
+	// The following check will fail if any bits are set in invalid positions
+	validMask := expr.CtStateBitINVALID | expr.CtStateBitESTABLISHED | expr.CtStateBitRELATED | expr.CtStateBitNEW | expr.CtStateBitUNTRACKED
+	if (validMask | mask) != validMask {
+		return []expr.Any{}, fmt.Errorf("invalid input mask, not a valid combination of CT states")
+	}
+
+	return []expr.Any{
+		BitwiseWithRegisters(reg, reg, 4, binaryutil.NativeEndian.PutUint32(mask), binaryutil.BigEndian.PutUint32(0)),
+		NotEquals([]byte{0, 0, 0, 0}, reg),
+	}, nil
+}
+
+func CompareCtState(mask uint32) ([]expr.Any, error) {
+	return CompareCtStateWithRegister(defaultRegister, mask)
 }
