@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/nftables"
+	"github.com/google/nftables/binaryutil"
 	"github.com/google/nftables/expr"
 	"github.com/google/nftables/xt"
 	"github.com/stretchr/testify/assert"
@@ -173,6 +174,31 @@ func TestCompareBadAddressSet(t *testing.T) {
 	assert.Equal(t, []expr.Any{}, res)
 
 	res, err = CompareDestinationAddressSet(&nftables.Set{Name: "testsets", KeyType: nftables.TypeARPHRD})
+	assert.Error(t, err)
+	assert.Equal(t, []expr.Any{}, res)
+}
+
+func TestLoadCtStateInput(t *testing.T) {
+	ct, err := LoadCtByKey(expr.CtKeyDIRECTION)
+	assert.Nil(t, err)
+	assert.Equal(t, &expr.Ct{Register: defaultRegister, SourceRegister: false, Key: expr.CtKeyDIRECTION}, ct)
+}
+
+func TestLoadCtStateInvalidInput(t *testing.T) {
+	state, err := LoadCtByKey(20) // not a valid value
+	assert.Error(t, err)
+	assert.Equal(t, &expr.Ct{}, state)
+}
+
+func TestCompareCtStateWithRegisterValidInput(t *testing.T) {
+	cmp, err := CompareCtStateWithRegister(defaultRegister, expr.CtStateBitNEW|expr.CtStateBitUNTRACKED)
+	assert.Nil(t, err)
+	assert.Equal(t, &expr.Bitwise{SourceRegister: defaultRegister, DestRegister: defaultRegister, Len: 4, Mask: binaryutil.NativeEndian.PutUint32(expr.CtStateBitNEW | expr.CtStateBitUNTRACKED), Xor: binaryutil.NativeEndian.PutUint32(0)}, cmp[0])
+	assert.Equal(t, &expr.Cmp{Op: expr.CmpOpNeq, Register: defaultRegister, Data: []byte{0, 0, 0, 0}}, cmp[1])
+}
+
+func TestCompareCtStateWithRegisterInvalidInput(t *testing.T) {
+	res, err := CompareCtStateWithRegister(defaultRegister, expr.CtStateBitNEW|16) // 16 isn't a valid value
 	assert.Error(t, err)
 	assert.Equal(t, []expr.Any{}, res)
 }
