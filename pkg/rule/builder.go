@@ -31,7 +31,7 @@ type builder struct {
 
 type Match func(*builder) error
 
-func Build(id []byte, matches ...Match) ([]expr.Any, error) {
+func MatchExpressions(matches ...Match) ([]expr.Any, error) {
 	b := builder{}
 
 	for _, m := range matches {

@@ -8,11 +8,7 @@ import (
 )
 
 func TestBuilder(t *testing.T) {
-	id := []byte{0xd, 0xe, 0xa, 0xd}
-
-	_, err := rule.Build(
-		id,
-
+	_, err := rule.MatchExpressions(
 		rule.IPv4(),
 
 		rule.SourceAddress(netip.MustParseAddr("192.168.1.100")),
