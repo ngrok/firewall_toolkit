@@ -26,7 +26,6 @@ import (
 	"strings"
 
 	"github.com/google/nftables"
-	"github.com/google/nftables/expr"
 
 	"github.com/ngrok/firewall_toolkit/pkg/expressions"
 	"github.com/ngrok/firewall_toolkit/pkg/logger"
@@ -86,12 +85,10 @@ func main() {
 	}
 
 	exprs, err := rule.Build(
-		rule.Drop,
+		nfVerdict,
 		rule.IPv4,
 		rule.TCP,
-		rule.Any(
-			expressions.MatchBpfWithVerdict(xtBpfInfoBytes, nfVerdict)...,
-		),
+		rule.Any(expressions.MatchBpf(xtBpfInfoBytes)),
 	)
 	if err != nil {
 		logger.Default.Fatal(err)
@@ -115,14 +112,14 @@ func main() {
 
 }
 
-func getVerdict(verdict string) (*expr.Verdict, error) {
+func getVerdict(verdict string) (rule.Verdict, error) {
 	switch verdict {
 	case "drop":
-		return expressions.Drop(), nil
+		return rule.Drop, nil
 	case "accept":
-		return expressions.Accept(), nil
+		return rule.Accept, nil
 	default:
-		return &expr.Verdict{}, fmt.Errorf("unsupported verdict %v", verdict)
+		return 0, fmt.Errorf("unsupported verdict %v", verdict)
 	}
 }
 
