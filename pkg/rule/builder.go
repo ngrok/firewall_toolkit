@@ -43,7 +43,7 @@ type builder struct {
 
 type Match func(*builder) error
 
-func MatchExpressions(v Verdict, af AddrFamily, tp TransportProto, matches ...Match) ([]expr.Any, error) {
+func Build(v Verdict, af AddrFamily, tp TransportProto, matches ...Match) ([]expr.Any, error) {
 	b := builder{}
 
 	for _, m := range matches {
