@@ -34,11 +34,9 @@ const (
 )
 
 type builder struct {
-	family    byte
-	transport byte
-	verdict   expr.VerdictKind
-
-	exprs []expr.Any
+	family    AddrFamily
+	transport TransportProto
+	exprs     []expr.Any
 }
 
 // Defines a Match signature for supply matches to rules to it can modify the
@@ -52,7 +50,10 @@ type Match func(*builder) error
 // the rule does not make sense. For instance, if you use IPv4 and then attempt
 // to provide IPv6 addresses.
 func Build(v Verdict, af AddrFamily, tp TransportProto, matches ...Match) ([]expr.Any, error) {
-	b := builder{}
+	b := builder{
+		family:    af,
+		transport: tp,
+	}
 
 	for _, m := range matches {
 		b.with(m)
@@ -60,14 +61,14 @@ func Build(v Verdict, af AddrFamily, tp TransportProto, matches ...Match) ([]exp
 
 	exprs := make([]expr.Any, 0)
 
-	exprfamily, err := expressions.CompareProtocolFamily(b.family)
+	exprfamily, err := expressions.CompareProtocolFamily(byte(b.family))
 	if err != nil {
 		return nil, err
 	}
 	exprs = append(exprs, exprfamily...)
 
-	if b.transport > 0 {
-		exprtransport, err := expressions.CompareTransportProtocol(b.transport)
+	if tp > 0 {
+		exprtransport, err := expressions.CompareTransportProtocol(byte(b.transport))
 		if err != nil {
 			return nil, err
 		}
@@ -76,7 +77,7 @@ func Build(v Verdict, af AddrFamily, tp TransportProto, matches ...Match) ([]exp
 
 	exprs = append(exprs, b.exprs...)
 
-	exprs = append(exprs, &expr.Verdict{Kind: b.verdict})
+	exprs = append(exprs, &expr.Verdict{Kind: expr.VerdictKind(v)})
 
 	return exprs, nil
 }
@@ -89,10 +90,10 @@ func (b *builder) with(opt Match) error {
 }
 
 func (b *builder) checkAddrFamily(ip netip.Addr) error {
-	if ip.Is4() && b.family == unix.NFPROTO_IPV6 {
+	if ip.Is4() && b.family == IPv6 {
 		return errors.New("family and ip mismatch")
 	}
-	if ip.Is6() && b.family == unix.NFPROTO_IPV4 {
+	if ip.Is6() && b.family == IPv4 {
 		return errors.New("family and ip mismatch")
 	}
 	return nil
@@ -101,15 +102,25 @@ func (b *builder) checkAddrFamily(ip netip.Addr) error {
 func (b *builder) checkSetDatatypeFamily(family nftables.SetDatatype) error {
 	switch family {
 	case nftables.TypeIPAddr:
-		if b.family == unix.NFPROTO_IPV6 {
+		if b.family == IPv6 {
 			return errors.New("family and ip mismatch")
 		}
 	case nftables.TypeIP6Addr:
-		if b.family == unix.NFPROTO_IPV4 {
+		if b.family == IPv4 {
 			return errors.New("family and ip mismatch")
 		}
 	}
 	return nil
+}
+
+// Any is a convenience function for adding any number of raw expr.Any types to
+// the rule. Use this with caution and if you know how nftables will interpret
+// the expressions added.
+func Any(e ...expr.Any) Match {
+	return func(b *builder) error {
+		b.exprs = append(b.exprs, e...)
+		return nil
+	}
 }
 
 // Counter adds the "counter" expression to the rule to keep track of the
