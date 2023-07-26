@@ -85,8 +85,20 @@ func main() {
 		logger.Default.Fatal(err)
 	}
 
+	exprs, err := rule.Build(
+		rule.Drop,
+		rule.IPv4,
+		rule.TCP,
+		rule.Any(
+			expressions.MatchBpfWithVerdict(xtBpfInfoBytes, nfVerdict)...,
+		),
+	)
+	if err != nil {
+		logger.Default.Fatal(err)
+	}
+
 	ruleTarget := rule.NewRuleTarget(nfTable, nfChain)
-	bpfRule := rule.NewRuleData([]byte{0xd, 0xe, 0xa, 0xd}, expressions.MatchBpfWithVerdict(xtBpfInfoBytes, nfVerdict))
+	bpfRule := rule.NewRuleData([]byte{0xd, 0xe, 0xa, 0xd}, exprs)
 	added, err := ruleTarget.Add(c, bpfRule)
 	if err != nil {
 		logger.Default.Fatalf("adding rule %x failed: %v", bpfRule.ID, err)
