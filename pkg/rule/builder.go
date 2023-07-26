@@ -13,7 +13,7 @@ import (
 type AddrFamily int8
 
 const (
-	AnyFamily AddrFamily = -1
+	AnyFamily AddrFamily = unix.NFPROTO_INET
 	IPv4      AddrFamily = unix.NFPROTO_IPV4
 	IPv6      AddrFamily = unix.NFPROTO_IPV6
 )
@@ -41,8 +41,16 @@ type builder struct {
 	exprs []expr.Any
 }
 
+// Defines a Match signature for supply matches to rules to it can modify the
+// underlying builder and return any errors it encounter when attempting to
+// build a rule.
 type Match func(*builder) error
 
+// Build requires Verdict, AddrFamily, and TransportProto to build a minimal
+// rule for nftables. Optionally, any number of matches can be provided in
+// order to increase specificity of the rule. Build will return an error if
+// the rule does not make sense. For instance, if you use IPv4 and then attempt
+// to provide IPv6 addresses.
 func Build(v Verdict, af AddrFamily, tp TransportProto, matches ...Match) ([]expr.Any, error) {
 	b := builder{}
 
@@ -58,11 +66,13 @@ func Build(v Verdict, af AddrFamily, tp TransportProto, matches ...Match) ([]exp
 	}
 	exprs = append(exprs, exprfamily...)
 
-	exprtransport, err := expressions.CompareTransportProtocol(b.transport)
-	if err != nil {
-		return nil, err
+	if b.transport > 0 {
+		exprtransport, err := expressions.CompareTransportProtocol(b.transport)
+		if err != nil {
+			return nil, err
+		}
+		exprs = append(exprs, exprtransport...)
 	}
-	exprs = append(exprs, exprtransport...)
 
 	exprs = append(exprs, b.exprs...)
 
@@ -102,6 +112,8 @@ func (b *builder) checkSetDatatypeFamily(family nftables.SetDatatype) error {
 	return nil
 }
 
+// Counter adds the "counter" expression to the rule to keep track of the
+// the number of bytes and packets the rule matches on traffic.
 func Counter() Match {
 	return func(b *builder) error {
 		b.exprs = append(b.exprs, expressions.Counter())
@@ -109,6 +121,7 @@ func Counter() Match {
 	}
 }
 
+// SourceAddress adds a single source IP address to the rule to match on.
 func SourceAddress(ip netip.Addr) Match {
 	return func(b *builder) error {
 		if err := b.checkAddrFamily(ip); err != nil {
@@ -125,6 +138,9 @@ func SourceAddress(ip netip.Addr) Match {
 	}
 }
 
+// SourceAddressSet adds an nftables named set of source IP addresses to match
+// on. It ensure this named set already exists in nftables so you don't have
+// a rule referencing a non-existant named set.
 func SourceAddressSet(set *nftables.Set) Match {
 	return func(b *builder) error {
 		if err := b.checkSetDatatypeFamily(set.KeyType); err != nil {
@@ -141,6 +157,7 @@ func SourceAddressSet(set *nftables.Set) Match {
 	}
 }
 
+// SourcePort adds a single source port to the rule to match on.
 func SourcePort(port uint16) Match {
 	return func(b *builder) error {
 		e, err := expressions.CompareSourcePort(port)
@@ -153,6 +170,9 @@ func SourcePort(port uint16) Match {
 	}
 }
 
+// SourcePortSet adds an nftables named set of source ports to match on. It
+// ensure this named set already exists in nftables so you don't have a rule
+// referencing a non-existant named set.
 func SourcePortSet(set *nftables.Set) Match {
 	return func(b *builder) error {
 		e, err := expressions.CompareSourcePortSet(set)
@@ -165,6 +185,8 @@ func SourcePortSet(set *nftables.Set) Match {
 	}
 }
 
+// DestinationAddress adds a single destination IP address to the rule to match
+// on.
 func DestinationAddress(ip netip.Addr) Match {
 	return func(b *builder) error {
 		if err := b.checkAddrFamily(ip); err != nil {
@@ -181,6 +203,9 @@ func DestinationAddress(ip netip.Addr) Match {
 	}
 }
 
+// DestinationAddressSet adds an nftables named set of destination IP addresses
+// to match on. It ensure this named set already exists in nftables so you
+// don't have a rule referencing a non-existant named set.
 func DestinationAddressSet(set *nftables.Set) Match {
 	return func(b *builder) error {
 		if err := b.checkSetDatatypeFamily(set.KeyType); err != nil {
@@ -197,6 +222,7 @@ func DestinationAddressSet(set *nftables.Set) Match {
 	}
 }
 
+// DestinationPort adds a single destination port to the rule to match on.
 func DestinationPort(port uint16) Match {
 	return func(b *builder) error {
 		e, err := expressions.CompareDestinationPort(port)
@@ -209,6 +235,9 @@ func DestinationPort(port uint16) Match {
 	}
 }
 
+// DestinationPortSet adds an nftables named set of destination ports to match
+// on. It ensure this named set already exists in nftables so you don't have a
+// rule referencing a non-existant named set.
 func DestinationPortSet(set *nftables.Set) Match {
 	return func(b *builder) error {
 		e, err := expressions.CompareDestinationPortSet(set)
