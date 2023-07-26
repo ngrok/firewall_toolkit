@@ -8,8 +8,10 @@ import (
 )
 
 func TestBuilder(t *testing.T) {
-	_, err := rule.MatchExpressions(
-		rule.IPv4(),
+	_, err := rule.Build(
+		rule.Drop,
+		rule.IPv4,
+		rule.AnyTransport,
 
 		rule.SourceAddress(netip.MustParseAddr("192.168.1.100")),
 		rule.SourcePort(6100),
@@ -18,7 +20,6 @@ func TestBuilder(t *testing.T) {
 		rule.DestinationPort(443),
 
 		rule.Counter(),
-		rule.Statement(rule.VerdictDrop),
 	)
 	if err != nil {
 		t.Error(err)
