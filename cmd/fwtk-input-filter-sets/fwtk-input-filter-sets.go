@@ -314,8 +314,8 @@ func newRuleInfo(portSet *nftables.Set, ipv4Set *nftables.Set, ipv6Set *nftables
 func (s *ruleInfo) createRuleData() ([]rule.RuleData, error) {
 	ipv6Exprs, err := rule.Build(
 		rule.Drop,
-		rule.IPv6,
-		rule.TCP,
+		rule.AddressFamily(rule.IPv6),
+		rule.TransportProtocol(rule.TCP),
 		rule.SourceAddressSet(s.IPv6Set),
 		rule.DestinationPortSet(s.PortSet),
 		rule.Counter(),
@@ -326,8 +326,8 @@ func (s *ruleInfo) createRuleData() ([]rule.RuleData, error) {
 
 	ipv4Exprs, err := rule.Build(
 		rule.Drop,
-		rule.IPv4,
-		rule.TCP,
+		rule.AddressFamily(rule.IPv4),
+		rule.TransportProtocol(rule.TCP),
 		rule.SourceAddressSet(s.IPv4Set),
 		rule.DestinationPortSet(s.PortSet),
 		rule.Counter(),
