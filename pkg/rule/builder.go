@@ -13,7 +13,7 @@ import (
 type AddrFamily int8
 
 const (
-	AnyFamily AddrFamily = unix.NFPROTO_INET
+	AnyFamily AddrFamily = -1
 	IPv4      AddrFamily = unix.NFPROTO_IPV4
 	IPv6      AddrFamily = unix.NFPROTO_IPV6
 )
@@ -49,25 +49,28 @@ type Match func(*builder) error
 // order to increase specificity of the rule. Build will return an error if
 // the rule does not make sense. For instance, if you use IPv4 and then attempt
 // to provide IPv6 addresses.
-func Build(v Verdict, af AddrFamily, tp TransportProto, matches ...Match) ([]expr.Any, error) {
-	b := builder{
-		family:    af,
-		transport: tp,
-	}
+func Build(v Verdict, matches ...Match) ([]expr.Any, error) {
+	b := builder{}
 
 	for _, m := range matches {
-		b.with(m)
+		if err := b.with(m); err != nil {
+			return nil, err
+		}
 	}
 
-	exprs := make([]expr.Any, 0)
+	// to allow for space for family, transport, and verdict without needing to
+	// grow the underlying array since we know the capacity ahead of time
+	exprs := make([]expr.Any, 0, len(b.exprs)+3)
 
-	exprfamily, err := expressions.CompareProtocolFamily(byte(b.family))
-	if err != nil {
-		return nil, err
+	if b.family > 0 {
+		exprfamily, err := expressions.CompareProtocolFamily(byte(b.family))
+		if err != nil {
+			return nil, err
+		}
+		exprs = append(exprs, exprfamily...)
 	}
-	exprs = append(exprs, exprfamily...)
 
-	if tp > 0 {
+	if b.transport > 0 {
 		exprtransport, err := expressions.CompareTransportProtocol(byte(b.transport))
 		if err != nil {
 			return nil, err
@@ -89,36 +92,38 @@ func (b *builder) with(opt Match) error {
 	return nil
 }
 
-func (b *builder) checkAddrFamily(ip netip.Addr) error {
-	if ip.Is4() && b.family == IPv6 {
-		return errors.New("family and ip mismatch")
-	}
-	if ip.Is6() && b.family == IPv4 {
-		return errors.New("family and ip mismatch")
-	}
-	return nil
-}
-
-func (b *builder) checkSetDatatypeFamily(family nftables.SetDatatype) error {
-	switch family {
-	case nftables.TypeIPAddr:
-		if b.family == IPv6 {
-			return errors.New("family and ip mismatch")
-		}
-	case nftables.TypeIP6Addr:
-		if b.family == IPv4 {
-			return errors.New("family and ip mismatch")
-		}
-	}
-	return nil
-}
-
 // Any is a convenience function for adding any number of raw expr.Any types to
 // the rule. Use this with caution and if you know how nftables will interpret
 // the expressions added.
 func Any(e ...expr.Any) Match {
 	return func(b *builder) error {
 		b.exprs = append(b.exprs, e...)
+		return nil
+	}
+}
+
+// AddressFamily sets the AddrFamily for the rule. This will error if used more
+// than once in a single rule since nftables does not support mixing address
+// families in a single rule.
+func AddressFamily(af AddrFamily) Match {
+	return func(b *builder) error {
+		if b.family != 0 {
+			return errors.New("family already set")
+		}
+		b.family = af
+		return nil
+	}
+}
+
+// TransportProtocol sets the TransportProto for the rule. This will error if
+// used more than once in a single rule since nftables does not support mixing
+// transport protocols in a single rule.
+func TransportProtocol(tp TransportProto) Match {
+	return func(b *builder) error {
+		if b.transport != 0 {
+			return errors.New("transport already already set")
+		}
+		b.transport = tp
 		return nil
 	}
 }
@@ -135,10 +140,6 @@ func Counter() Match {
 // SourceAddress adds a single source IP address to the rule to match on.
 func SourceAddress(ip netip.Addr) Match {
 	return func(b *builder) error {
-		if err := b.checkAddrFamily(ip); err != nil {
-			return err
-		}
-
 		e, err := expressions.CompareSourceAddress(ip)
 		if err != nil {
 			return err
@@ -154,10 +155,6 @@ func SourceAddress(ip netip.Addr) Match {
 // a rule referencing a non-existant named set.
 func SourceAddressSet(set *nftables.Set) Match {
 	return func(b *builder) error {
-		if err := b.checkSetDatatypeFamily(set.KeyType); err != nil {
-			return err
-		}
-
 		e, err := expressions.CompareSourceAddressSet(set)
 		if err != nil {
 			return err
@@ -200,10 +197,6 @@ func SourcePortSet(set *nftables.Set) Match {
 // on.
 func DestinationAddress(ip netip.Addr) Match {
 	return func(b *builder) error {
-		if err := b.checkAddrFamily(ip); err != nil {
-			return err
-		}
-
 		e, err := expressions.CompareDestinationAddress(ip)
 		if err != nil {
 			return err
@@ -219,10 +212,6 @@ func DestinationAddress(ip netip.Addr) Match {
 // don't have a rule referencing a non-existant named set.
 func DestinationAddressSet(set *nftables.Set) Match {
 	return func(b *builder) error {
-		if err := b.checkSetDatatypeFamily(set.KeyType); err != nil {
-			return err
-		}
-
 		e, err := expressions.CompareDestinationAddressSet(set)
 		if err != nil {
 			return err

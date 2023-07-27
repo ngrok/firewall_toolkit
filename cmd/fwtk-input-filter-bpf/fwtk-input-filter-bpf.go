@@ -86,8 +86,6 @@ func main() {
 
 	exprs, err := rule.Build(
 		nfVerdict,
-		rule.IPv4,
-		rule.TCP,
 		rule.Any(expressions.MatchBpf(xtBpfInfoBytes)),
 	)
 	if err != nil {

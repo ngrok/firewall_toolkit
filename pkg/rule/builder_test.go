@@ -10,8 +10,9 @@ import (
 func TestBuilder(t *testing.T) {
 	_, err := rule.Build(
 		rule.Drop,
-		rule.IPv4,
-		rule.AnyTransport,
+
+		rule.AddressFamily(rule.IPv4),
+		rule.TransportProtocol(rule.AnyTransport),
 
 		rule.SourceAddress(netip.MustParseAddr("192.168.1.100")),
 		rule.SourcePort(6100),
