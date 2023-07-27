@@ -29,8 +29,27 @@ const (
 type Verdict expr.VerdictKind
 
 const (
-	Accept Verdict = Verdict(expr.VerdictAccept)
-	Drop   Verdict = Verdict(expr.VerdictDrop)
+	Return   Verdict = Verdict(expr.VerdictReturn)
+	Goto     Verdict = Verdict(expr.VerdictGoto)
+	Jump     Verdict = Verdict(expr.VerdictJump)
+	Break    Verdict = Verdict(expr.VerdictBreak)
+	Continue Verdict = Verdict(expr.VerdictContinue)
+	Accept   Verdict = Verdict(expr.VerdictAccept)
+	Drop     Verdict = Verdict(expr.VerdictDrop)
+	Stolen   Verdict = Verdict(expr.VerdictStolen)
+	Queue    Verdict = Verdict(expr.VerdictQueue)
+	Repeat   Verdict = Verdict(expr.VerdictRepeat)
+	Stop     Verdict = Verdict(expr.VerdictStop)
+)
+
+type ConnTrackState uint32
+
+const (
+	StateInvalid     ConnTrackState = ConnTrackState(expr.CtStateBitINVALID)
+	StateEstablished ConnTrackState = ConnTrackState(expr.CtStateBitESTABLISHED)
+	StateRelated     ConnTrackState = ConnTrackState(expr.CtStateBitRELATED)
+	StateNew         ConnTrackState = ConnTrackState(expr.CtStateBitNEW)
+	StateUntracked   ConnTrackState = ConnTrackState(expr.CtStateBitUNTRACKED)
 )
 
 type builder struct {
@@ -246,6 +265,21 @@ func DestinationPortSet(set *nftables.Set) Match {
 		}
 		b.exprs = append(b.exprs, e...)
 
+		return nil
+	}
+}
+
+// ConnectionTrackingState adds the state mask to the rule to match what the
+// state the connection should be in to match. You may supply multiple
+// ConnTrackState values by supplying a bitwise OR set of values
+// (ex. `StateNew | StateEstablished`)
+func ConnectionTrackingState(mask ConnTrackState) Match {
+	return func(b *builder) error {
+		e, err := expressions.CompareCtState(uint32(mask))
+		if err != nil {
+			return err
+		}
+		b.exprs = append(b.exprs, e...)
 		return nil
 	}
 }
