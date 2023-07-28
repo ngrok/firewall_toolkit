@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"github.com/google/nftables"
+	"github.com/google/nftables/expr"
 
 	"github.com/ngrok/firewall_toolkit/pkg/expressions"
 	"github.com/ngrok/firewall_toolkit/pkg/logger"
@@ -110,14 +111,14 @@ func main() {
 
 }
 
-func getVerdict(verdict string) (rule.Verdict, error) {
+func getVerdict(verdict string) (expr.VerdictKind, error) {
 	switch verdict {
 	case "drop":
-		return rule.Drop, nil
+		return expr.VerdictDrop, nil
 	case "accept":
-		return rule.Accept, nil
+		return expr.VerdictAccept, nil
 	default:
-		return 0, fmt.Errorf("unsupported verdict %v", verdict)
+		return -99, fmt.Errorf("unsupported verdict %v", verdict)
 	}
 }
 

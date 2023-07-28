@@ -29,8 +29,10 @@ import (
 	"time"
 
 	"github.com/google/nftables"
+	"github.com/google/nftables/expr"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/ngrok/firewall_toolkit/pkg/expressions"
 	"github.com/ngrok/firewall_toolkit/pkg/logger"
 	"github.com/ngrok/firewall_toolkit/pkg/rule"
 	"github.com/ngrok/firewall_toolkit/pkg/set"
@@ -313,24 +315,24 @@ func newRuleInfo(portSet *nftables.Set, ipv4Set *nftables.Set, ipv6Set *nftables
 
 func (s *ruleInfo) createRuleData() ([]rule.RuleData, error) {
 	ipv6Exprs, err := rule.Build(
-		rule.Drop,
-		rule.AddressFamily(rule.IPv6),
-		rule.TransportProtocol(rule.TCP),
+		expr.VerdictDrop,
+		rule.AddressFamily(expressions.IPv6),
+		rule.TransportProtocol(expressions.TCP),
 		rule.SourceAddressSet(s.IPv6Set),
 		rule.DestinationPortSet(s.PortSet),
-		rule.Counter(),
+		rule.Any(expressions.Counter()),
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	ipv4Exprs, err := rule.Build(
-		rule.Drop,
-		rule.AddressFamily(rule.IPv4),
-		rule.TransportProtocol(rule.TCP),
+		expr.VerdictDrop,
+		rule.AddressFamily(expressions.IPv4),
+		rule.TransportProtocol(expressions.TCP),
 		rule.SourceAddressSet(s.IPv4Set),
 		rule.DestinationPortSet(s.PortSet),
-		rule.Counter(),
+		rule.Any(expressions.Counter()),
 	)
 	if err != nil {
 		return nil, err

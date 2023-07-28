@@ -34,17 +34,17 @@ func TestGetXtBpfInfoBytesFd(t *testing.T) {
 func TestGetVerdictDrop(t *testing.T) {
 	e, err := getVerdict("drop")
 	assert.Nil(t, err)
-	assert.Equal(t, &expr.Verdict{}, e)
+	assert.Equal(t, expr.VerdictDrop, e)
 }
 
 func TestGetVerdictAccept(t *testing.T) {
 	e, err := getVerdict("accept")
 	assert.Nil(t, err)
-	assert.Equal(t, &expr.Verdict{Kind: 1, Chain: ""}, e)
+	assert.Equal(t, expr.VerdictAccept, e)
 }
 
 func TestGetVerdictBad(t *testing.T) {
 	e, err := getVerdict("bad")
 	assert.Error(t, err)
-	assert.Equal(t, &expr.Verdict{}, e)
+	assert.Equal(t, expr.VerdictKind(-99), e)
 }
