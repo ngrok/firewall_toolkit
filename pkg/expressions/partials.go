@@ -18,6 +18,22 @@ import (
 	"github.com/ngrok/firewall_toolkit/pkg/utils"
 )
 
+type AddrFamily int8
+
+const (
+	AnyFamily AddrFamily = -1
+	IPv4      AddrFamily = unix.NFPROTO_IPV4
+	IPv6      AddrFamily = unix.NFPROTO_IPV6
+)
+
+type TransportProto int8
+
+const (
+	AnyTransport TransportProto = -1
+	TCP          TransportProto = unix.IPPROTO_TCP
+	UDP          TransportProto = unix.IPPROTO_UDP
+)
+
 // Transport protocol lengths and offsets
 const (
 	SrcPortOffset = 0

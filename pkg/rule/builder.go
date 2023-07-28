@@ -7,23 +7,6 @@ import (
 	"github.com/google/nftables"
 	"github.com/google/nftables/expr"
 	"github.com/ngrok/firewall_toolkit/pkg/expressions"
-	"golang.org/x/sys/unix"
-)
-
-type AddrFamily int8
-
-const (
-	AnyFamily AddrFamily = -1
-	IPv4      AddrFamily = unix.NFPROTO_IPV4
-	IPv6      AddrFamily = unix.NFPROTO_IPV6
-)
-
-type TransportProto int8
-
-const (
-	AnyTransport TransportProto = -1
-	TCP          TransportProto = unix.IPPROTO_TCP
-	UDP          TransportProto = unix.IPPROTO_UDP
 )
 
 type Verdict expr.VerdictKind
@@ -53,8 +36,8 @@ const (
 )
 
 type builder struct {
-	family    AddrFamily
-	transport TransportProto
+	family    expressions.AddrFamily
+	transport expressions.TransportProto
 	exprs     []expr.Any
 }
 
@@ -124,7 +107,7 @@ func Any(e ...expr.Any) Match {
 // AddressFamily sets the AddrFamily for the rule. This will error if used more
 // than once in a single rule since nftables does not support mixing address
 // families in a single rule.
-func AddressFamily(af AddrFamily) Match {
+func AddressFamily(af expressions.AddrFamily) Match {
 	return func(b *builder) error {
 		if b.family != 0 {
 			return errors.New("family already set")
@@ -137,7 +120,7 @@ func AddressFamily(af AddrFamily) Match {
 // TransportProtocol sets the TransportProto for the rule. This will error if
 // used more than once in a single rule since nftables does not support mixing
 // transport protocols in a single rule.
-func TransportProtocol(tp TransportProto) Match {
+func TransportProtocol(tp expressions.TransportProto) Match {
 	return func(b *builder) error {
 		if b.transport != 0 {
 			return errors.New("transport already already set")

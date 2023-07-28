@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/nftables/expr"
+	"github.com/ngrok/firewall_toolkit/pkg/expressions"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,8 +14,8 @@ func TestBuilder(t *testing.T) {
 		exprs, err := Build(
 			Drop,
 
-			AddressFamily(IPv4),
-			TransportProtocol(AnyTransport),
+			AddressFamily(expressions.IPv4),
+			TransportProtocol(expressions.AnyTransport),
 
 			SourceAddress(netip.MustParseAddr("192.168.1.100")),
 			SourcePort(6100),
@@ -48,8 +49,8 @@ func TestBuilder(t *testing.T) {
 		_, err := Build(
 			Accept,
 
-			AddressFamily(IPv4),
-			AddressFamily(IPv6),
+			AddressFamily(expressions.IPv4),
+			AddressFamily(expressions.IPv6),
 
 			DestinationPort(8080),
 		)
@@ -60,8 +61,8 @@ func TestBuilder(t *testing.T) {
 		_, err := Build(
 			Accept,
 
-			TransportProtocol(UDP),
-			TransportProtocol(UDP),
+			TransportProtocol(expressions.UDP),
+			TransportProtocol(expressions.UDP),
 
 			DestinationPort(8080),
 		)
@@ -72,7 +73,7 @@ func TestBuilder(t *testing.T) {
 		_, err := Build(
 			Accept,
 
-			AddressFamily(IPv4),
+			AddressFamily(expressions.IPv4),
 
 			SourceAddress(netip.MustParseAddr("::1")),
 		)
@@ -81,7 +82,7 @@ func TestBuilder(t *testing.T) {
 		_, err = Build(
 			Accept,
 
-			AddressFamily(IPv6),
+			AddressFamily(expressions.IPv6),
 
 			SourceAddress(netip.MustParseAddr("127.0.0.1")),
 		)
