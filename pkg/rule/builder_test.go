@@ -12,7 +12,7 @@ import (
 func TestBuilder(t *testing.T) {
 	t.Run("success all matches", func(t *testing.T) {
 		exprs, err := Build(
-			Drop,
+			expr.VerdictDrop,
 
 			AddressFamily(expressions.IPv4),
 			TransportProtocol(expressions.AnyTransport),
@@ -23,9 +23,9 @@ func TestBuilder(t *testing.T) {
 			DestinationAddress(netip.MustParseAddr("10.0.0.100")),
 			DestinationPort(443),
 
-			ConnectionTrackingState(StateNew|StateEstablished),
+			ConnectionTrackingState(expr.CtStateBitNEW|expr.CtStateBitESTABLISHED),
 
-			Counter(),
+			Any(expressions.Counter()),
 		)
 		assert.NoError(t, err)
 		assert.Len(t, exprs, 14)
@@ -47,7 +47,7 @@ func TestBuilder(t *testing.T) {
 
 	t.Run("multiple address families", func(t *testing.T) {
 		_, err := Build(
-			Accept,
+			expr.VerdictAccept,
 
 			AddressFamily(expressions.IPv4),
 			AddressFamily(expressions.IPv6),
@@ -59,7 +59,7 @@ func TestBuilder(t *testing.T) {
 
 	t.Run("multiple transports", func(t *testing.T) {
 		_, err := Build(
-			Accept,
+			expr.VerdictAccept,
 
 			TransportProtocol(expressions.UDP),
 			TransportProtocol(expressions.UDP),
@@ -71,7 +71,7 @@ func TestBuilder(t *testing.T) {
 
 	t.Run("mixing family and ip", func(t *testing.T) {
 		_, err := Build(
-			Accept,
+			expr.VerdictAccept,
 
 			AddressFamily(expressions.IPv4),
 
@@ -80,7 +80,7 @@ func TestBuilder(t *testing.T) {
 		assert.Error(t, err)
 
 		_, err = Build(
-			Accept,
+			expr.VerdictAccept,
 
 			AddressFamily(expressions.IPv6),
 

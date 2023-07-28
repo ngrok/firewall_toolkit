@@ -9,32 +9,6 @@ import (
 	"github.com/ngrok/firewall_toolkit/pkg/expressions"
 )
 
-type Verdict expr.VerdictKind
-
-const (
-	Return   Verdict = Verdict(expr.VerdictReturn)
-	Goto     Verdict = Verdict(expr.VerdictGoto)
-	Jump     Verdict = Verdict(expr.VerdictJump)
-	Break    Verdict = Verdict(expr.VerdictBreak)
-	Continue Verdict = Verdict(expr.VerdictContinue)
-	Accept   Verdict = Verdict(expr.VerdictAccept)
-	Drop     Verdict = Verdict(expr.VerdictDrop)
-	Stolen   Verdict = Verdict(expr.VerdictStolen)
-	Queue    Verdict = Verdict(expr.VerdictQueue)
-	Repeat   Verdict = Verdict(expr.VerdictRepeat)
-	Stop     Verdict = Verdict(expr.VerdictStop)
-)
-
-type ConnTrackState uint32
-
-const (
-	StateInvalid     ConnTrackState = ConnTrackState(expr.CtStateBitINVALID)
-	StateEstablished ConnTrackState = ConnTrackState(expr.CtStateBitESTABLISHED)
-	StateRelated     ConnTrackState = ConnTrackState(expr.CtStateBitRELATED)
-	StateNew         ConnTrackState = ConnTrackState(expr.CtStateBitNEW)
-	StateUntracked   ConnTrackState = ConnTrackState(expr.CtStateBitUNTRACKED)
-)
-
 type builder struct {
 	family    expressions.AddrFamily
 	transport expressions.TransportProto
@@ -51,7 +25,7 @@ type Match func(*builder) error
 // order to increase specificity of the rule. Build will return an error if
 // the rule does not make sense. For instance, if you use IPv4 and then attempt
 // to provide IPv6 addresses.
-func Build(v Verdict, matches ...Match) ([]expr.Any, error) {
+func Build(v expr.VerdictKind, matches ...Match) ([]expr.Any, error) {
 	b := builder{}
 
 	for _, m := range matches {
@@ -82,7 +56,7 @@ func Build(v Verdict, matches ...Match) ([]expr.Any, error) {
 
 	exprs = append(exprs, b.exprs...)
 
-	exprs = append(exprs, &expr.Verdict{Kind: expr.VerdictKind(v)})
+	exprs = append(exprs, &expr.Verdict{Kind: v})
 
 	return exprs, nil
 }
@@ -90,6 +64,26 @@ func Build(v Verdict, matches ...Match) ([]expr.Any, error) {
 func (b *builder) with(opt Match) error {
 	if err := opt(b); err != nil {
 		return err
+	}
+	return nil
+}
+
+func (b *builder) checkAddrFamily(ip netip.Addr) error {
+	if b.family <= 0 {
+		return nil
+	}
+	if (ip.Is4() && b.family != expressions.IPv4) || (ip.Is6() && b.family != expressions.IPv6) {
+		return errors.New("rule family and ip family mismatch")
+	}
+	return nil
+}
+
+func (b *builder) checkSetKeyTypeFamily(kt nftables.SetDatatype) error {
+	if b.family <= 0 {
+		return nil
+	}
+	if (kt == nftables.TypeIPAddr && b.family != expressions.IPv4) || (kt == nftables.TypeIP6Addr && b.family != expressions.IPv6) {
+		return errors.New("rule family and ip family mismatch")
 	}
 	return nil
 }
@@ -130,18 +124,13 @@ func TransportProtocol(tp expressions.TransportProto) Match {
 	}
 }
 
-// Counter adds the "counter" expression to the rule to keep track of the
-// the number of bytes and packets the rule matches on traffic.
-func Counter() Match {
-	return func(b *builder) error {
-		b.exprs = append(b.exprs, expressions.Counter())
-		return nil
-	}
-}
-
 // SourceAddress adds a single source IP address to the rule to match on.
 func SourceAddress(ip netip.Addr) Match {
 	return func(b *builder) error {
+		if err := b.checkAddrFamily(ip); err != nil {
+			return err
+		}
+
 		e, err := expressions.CompareSourceAddress(ip)
 		if err != nil {
 			return err
@@ -157,6 +146,10 @@ func SourceAddress(ip netip.Addr) Match {
 // a rule referencing a non-existant named set.
 func SourceAddressSet(set *nftables.Set) Match {
 	return func(b *builder) error {
+		if err := b.checkSetKeyTypeFamily(set.KeyType); err != nil {
+			return err
+		}
+
 		e, err := expressions.CompareSourceAddressSet(set)
 		if err != nil {
 			return err
@@ -199,6 +192,10 @@ func SourcePortSet(set *nftables.Set) Match {
 // on.
 func DestinationAddress(ip netip.Addr) Match {
 	return func(b *builder) error {
+		if err := b.checkAddrFamily(ip); err != nil {
+			return err
+		}
+
 		e, err := expressions.CompareDestinationAddress(ip)
 		if err != nil {
 			return err
@@ -214,6 +211,10 @@ func DestinationAddress(ip netip.Addr) Match {
 // don't have a rule referencing a non-existant named set.
 func DestinationAddressSet(set *nftables.Set) Match {
 	return func(b *builder) error {
+		if err := b.checkSetKeyTypeFamily(set.KeyType); err != nil {
+			return err
+		}
+
 		e, err := expressions.CompareDestinationAddressSet(set)
 		if err != nil {
 			return err
@@ -254,15 +255,27 @@ func DestinationPortSet(set *nftables.Set) Match {
 
 // ConnectionTrackingState adds the state mask to the rule to match what the
 // state the connection should be in to match. You may supply multiple
-// ConnTrackState values by supplying a bitwise OR set of values
-// (ex. `StateNew | StateEstablished`)
-func ConnectionTrackingState(mask ConnTrackState) Match {
+// values by supplying a bitwise OR set (ex. `StateNew | StateEstablished`)
+func ConnectionTrackingState(mask uint32) Match {
 	return func(b *builder) error {
-		e, err := expressions.CompareCtState(uint32(mask))
+		e, err := expressions.CompareCtState(mask)
 		if err != nil {
 			return err
 		}
 		b.exprs = append(b.exprs, e...)
+		return nil
+	}
+}
+
+// LoadConnectionTrackingState loads the key in which the connection tracking
+// information should be loaded into the rule.
+func LoadConnectionTrackingState(key expr.CtKey) Match {
+	return func(b *builder) error {
+		e, err := expressions.LoadCtByKey(key)
+		if err != nil {
+			return err
+		}
+		b.exprs = append(b.exprs, e)
 		return nil
 	}
 }
