@@ -31,7 +31,6 @@ import (
 	"github.com/google/nftables"
 	"github.com/google/nftables/expr"
 	"golang.org/x/sync/errgroup"
-	"golang.org/x/sys/unix"
 
 	"github.com/ngrok/firewall_toolkit/pkg/expressions"
 	"github.com/ngrok/firewall_toolkit/pkg/logger"
@@ -315,14 +314,28 @@ func newRuleInfo(portSet *nftables.Set, ipv4Set *nftables.Set, ipv6Set *nftables
 }
 
 func (s *ruleInfo) createRuleData() ([]rule.RuleData, error) {
-	ipv6Exprs, err := generateExpression(s.PortSet, s.IPv6Set)
+	ipv6Exprs, err := rule.Build(
+		expr.VerdictDrop,
+		rule.AddressFamily(expressions.IPv6),
+		rule.TransportProtocol(expressions.TCP),
+		rule.SourceAddressSet(s.IPv6Set),
+		rule.DestinationPortSet(s.PortSet),
+		rule.Any(expressions.Counter()),
+	)
 	if err != nil {
-		return []rule.RuleData{}, err
+		return nil, err
 	}
 
-	ipv4Exprs, err := generateExpression(s.PortSet, s.IPv4Set)
+	ipv4Exprs, err := rule.Build(
+		expr.VerdictDrop,
+		rule.AddressFamily(expressions.IPv4),
+		rule.TransportProtocol(expressions.TCP),
+		rule.SourceAddressSet(s.IPv4Set),
+		rule.DestinationPortSet(s.PortSet),
+		rule.Any(expressions.Counter()),
+	)
 	if err != nil {
-		return []rule.RuleData{}, err
+		return nil, err
 	}
 
 	// give each rule a unique id so we can track it's existence
@@ -330,55 +343,4 @@ func (s *ruleInfo) createRuleData() ([]rule.RuleData, error) {
 	ipv6Rule := rule.NewRuleData([]byte{0xc, 0xa, 0xf, 0xe}, ipv6Exprs)
 
 	return []rule.RuleData{ipv4Rule, ipv6Rule}, nil
-}
-
-func generateExpression(portSet *nftables.Set, ipSet *nftables.Set) ([]expr.Any, error) {
-	// FIXME: we should come up with a better, more abstract way to build rules like this
-	// create all the rule expressions to use the sets
-	expressionList := []expr.Any{}
-
-	// this is an inet table so we need to check ipv4 vs ipv6
-	switch ipSet.KeyType {
-	case nftables.TypeIPAddr:
-		e, err := expressions.CompareProtocolFamily(unix.NFPROTO_IPV4)
-		expressionList = append(expressionList, e...)
-		if err != nil {
-			return []expr.Any{}, err
-		}
-	case nftables.TypeIP6Addr:
-		e, err := expressions.CompareProtocolFamily(unix.NFPROTO_IPV6)
-		expressionList = append(expressionList, e...)
-		if err != nil {
-			return []expr.Any{}, err
-		}
-	}
-
-	// check the source ip against what's in the set
-	addressLookup, err := expressions.CompareSourceAddressSet(ipSet)
-	if err != nil {
-		return []expr.Any{}, err
-	}
-
-	// use the port set to compare the destination port
-	// used for v4 and v6
-	portLookup, err := expressions.CompareDestinationPortSet(portSet)
-	if err != nil {
-		return []expr.Any{}, err
-	}
-
-	// we only care about tcp
-	// used for v4 and v6
-	transportLookup, err := expressions.CompareTransportProtocol(unix.IPPROTO_TCP)
-	if err != nil {
-		return []expr.Any{}, err
-	}
-
-	// combine all the expressions into a rule
-	expressionList = append(expressionList, addressLookup...)
-	expressionList = append(expressionList, transportLookup...)
-	expressionList = append(expressionList, portLookup...)
-	expressionList = append(expressionList, expressions.Counter())
-	expressionList = append(expressionList, expressions.Drop())
-
-	return expressionList, nil
 }

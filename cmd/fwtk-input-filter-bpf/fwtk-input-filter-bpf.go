@@ -85,8 +85,16 @@ func main() {
 		logger.Default.Fatal(err)
 	}
 
+	exprs, err := rule.Build(
+		nfVerdict,
+		rule.Any(expressions.MatchBpf(xtBpfInfoBytes)),
+	)
+	if err != nil {
+		logger.Default.Fatal(err)
+	}
+
 	ruleTarget := rule.NewRuleTarget(nfTable, nfChain)
-	bpfRule := rule.NewRuleData([]byte{0xd, 0xe, 0xa, 0xd}, expressions.MatchBpfWithVerdict(xtBpfInfoBytes, nfVerdict))
+	bpfRule := rule.NewRuleData([]byte{0xd, 0xe, 0xa, 0xd}, exprs)
 	added, err := ruleTarget.Add(c, bpfRule)
 	if err != nil {
 		logger.Default.Fatalf("adding rule %x failed: %v", bpfRule.ID, err)
@@ -103,14 +111,14 @@ func main() {
 
 }
 
-func getVerdict(verdict string) (*expr.Verdict, error) {
+func getVerdict(verdict string) (expr.VerdictKind, error) {
 	switch verdict {
 	case "drop":
-		return expressions.Drop(), nil
+		return expr.VerdictDrop, nil
 	case "accept":
-		return expressions.Accept(), nil
+		return expr.VerdictAccept, nil
 	default:
-		return &expr.Verdict{}, fmt.Errorf("unsupported verdict %v", verdict)
+		return -99, fmt.Errorf("unsupported verdict %v", verdict)
 	}
 }
 
