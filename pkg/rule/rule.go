@@ -10,12 +10,20 @@ import (
 	"fmt"
 
 	"github.com/google/nftables"
+	"github.com/google/nftables/expr"
 )
 
 // RuleTarget represents a location to manipulate nftables rules
 type RuleTarget struct {
 	table *nftables.Table
 	chain *nftables.Chain
+}
+
+type RuleUsageCounter struct {
+	protocol string
+	verdict  string
+	bytes    int64
+	packets  int64
 }
 
 // Create a new location to manipulate nftables rules
@@ -124,6 +132,63 @@ func (r *RuleTarget) Update(c *nftables.Conn, rules []RuleData) (bool, int, int,
 // Get the nftables table and chain associated with this RuleTarget
 func (r *RuleTarget) GetTableAndChain() (*nftables.Table, *nftables.Chain) {
 	return r.table, r.chain
+}
+
+func (r *RuleTarget) Get(c *nftables.Conn) ([]*nftables.Rule, error) {
+	return c.GetRules(r.table, r.chain)
+}
+
+func (r *RuleTarget) GetRuleUsageCounters(c *nftables.Conn) ([]RuleUsageCounter, error) {
+	rules, err := r.Get(c)
+
+	if err != nil {
+		return nil, err
+	}
+
+	usageCounters := make([]RuleUsageCounter, len(rules))
+	for i, rule := range rules {
+		verdict := "accept"
+		protocol := ""
+		nfproto := false
+		var bytes, packets int64
+
+		for _, ex := range rule.Exprs {
+			if meta, ok := ex.(*expr.Meta); ok {
+				nfproto = meta.Key == expr.MetaKeyNFPROTO
+			}
+
+			if compare, ok := ex.(*expr.Cmp); ok {
+				if nfproto {
+					if compare.Data[0] == byte(nftables.TableFamilyIPv4) {
+						protocol = "ipv4"
+					} else if compare.Data[0] == byte(nftables.TableFamilyIPv6) {
+						protocol = "ipv6"
+					}
+				}
+			}
+
+			if counter, ok := ex.(*expr.Counter); ok {
+				bytes = int64(counter.Bytes)
+				packets = int64(counter.Packets)
+			}
+
+			if ver, ok := ex.(*expr.Verdict); ok {
+				if ver.Kind == expr.VerdictDrop {
+					verdict = "drop"
+				}
+			}
+		}
+
+		usageCounters[i] = RuleUsageCounter{
+			verdict:  verdict,
+			protocol: protocol,
+			bytes:    bytes,
+			packets:  packets,
+		}
+	}
+
+	return usageCounters, nil
+
 }
 
 func genRuleDelta(existingRules []*nftables.Rule, newRules []RuleData) (add []RuleData, remove []*nftables.Rule) {

@@ -97,6 +97,16 @@ func (r *ManagedRules) Start(ctx context.Context) error {
 				r.logger.Warnf("error sending manager_loop_update_data metric: %v", err)
 			}
 
+			ruleUsageCounters, err := r.ruleTarget.GetRuleUsageCounters(r.conn)
+			if err != nil {
+				r.logger.Warnf("error getting rules for sending usage count metric: %v", err)
+			} else {
+				for _, counter := range ruleUsageCounters {
+					r.metrics.Count(m.Prefix("fwng-agent.bytes"), counter.bytes, r.genTags([]string{fmt.Sprintf("verdict:%s", counter.verdict), fmt.Sprintf("protocol:%s", counter.protocol)}), 1)
+					r.metrics.Count(m.Prefix("fwng-agent.packets"), counter.packets, r.genTags([]string{fmt.Sprintf("verdict:%s", counter.verdict), fmt.Sprintf("protocol:%s", counter.protocol)}), 1)
+				}
+			}
+
 			// only flush if things went well above
 			if !flush {
 				continue
