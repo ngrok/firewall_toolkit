@@ -158,6 +158,7 @@ func (r *RuleTarget) GetRuleUsageCounters(c *nftables.Conn) ([]RuleUsageCounter,
 			}
 
 			if compare, ok := ex.(*expr.Cmp); ok {
+				// The nfproto meta tag comes before the protocol comparison in expressions
 				if nfproto {
 					if compare.Data[0] == byte(nftables.TableFamilyIPv4) {
 						protocol = "ipv4"
