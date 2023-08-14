@@ -102,11 +102,11 @@ func (r *ManagedRules) Start(ctx context.Context) error {
 				r.logger.Warnf("error getting rules for sending usage count metric: %v", err)
 			} else {
 				for _, counter := range ruleUsageCounters {
-					err = r.metrics.Count(m.Prefix("fwng-agent.bytes"), counter.bytes, r.genTags([]string{fmt.Sprintf("verdict:%s", counter.verdict), fmt.Sprintf("protocol:%s", counter.protocol)}), 1)
+					err = r.metrics.Count(m.Prefix("fwng-agent.bytes"), counter.bytes, r.genTags([]string{fmt.Sprintf("verdict:%s", counter.verdict), fmt.Sprintf("protocol:%s", counter.protocol), fmt.Sprintf("id:%s", counter.id)}), 1)
 					if err != nil {
 						r.logger.Warnf("error sending fng-agent.bytes metric: %v", err)
 					}
-					err = r.metrics.Count(m.Prefix("fwng-agent.packets"), counter.packets, r.genTags([]string{fmt.Sprintf("verdict:%s", counter.verdict), fmt.Sprintf("protocol:%s", counter.protocol)}), 1)
+					err = r.metrics.Count(m.Prefix("fwng-agent.packets"), counter.packets, r.genTags([]string{fmt.Sprintf("verdict:%s", counter.verdict), fmt.Sprintf("protocol:%s", counter.protocol), fmt.Sprintf("id:%s", counter.id)}), 1)
 					if err != nil {
 						r.logger.Warnf("error sending fng-agent.packets metric: %v", err)
 					}

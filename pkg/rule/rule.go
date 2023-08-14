@@ -24,6 +24,7 @@ type RuleUsageCounter struct {
 	verdict  string
 	bytes    int64
 	packets  int64
+	id       []byte
 }
 
 // Create a new location to manipulate nftables rules
@@ -134,10 +135,25 @@ func (r *RuleTarget) GetTableAndChain() (*nftables.Table, *nftables.Chain) {
 	return r.table, r.chain
 }
 
-func (r *RuleTarget) Get(c *nftables.Conn) ([]*nftables.Rule, error) {
-	return c.GetRules(r.table, r.chain)
+// Get the rule data associated with a table and chain
+func (r *RuleTarget) Get(c *nftables.Conn) ([]RuleData, error) {
+	rules, err := c.GetRules(r.table, r.chain)
+	if err != nil {
+		return nil, err
+	}
+
+	ruleData := make([]RuleData, len(rules))
+	for i, rule := range rules {
+		ruleData[i] = RuleData{
+			ID:          rule.UserData,
+			Expressions: rule.Exprs,
+		}
+	}
+
+	return ruleData, nil
 }
 
+// Get counters for total packets and bytes each rule has seen since last reset
 func (r *RuleTarget) GetRuleUsageCounters(c *nftables.Conn) ([]RuleUsageCounter, error) {
 	rules, err := r.Get(c)
 
@@ -152,29 +168,24 @@ func (r *RuleTarget) GetRuleUsageCounters(c *nftables.Conn) ([]RuleUsageCounter,
 		nfproto := false
 		var bytes, packets int64
 
-		for _, ex := range rule.Exprs {
-			if meta, ok := ex.(*expr.Meta); ok {
-				nfproto = meta.Key == expr.MetaKeyNFPROTO
-			}
-
-			if compare, ok := ex.(*expr.Cmp); ok {
+		for _, ex := range rule.Expressions {
+			switch v := ex.(type) {
+			case *expr.Meta:
+				nfproto = v.Key == expr.MetaKeyNFPROTO
+			case *expr.Cmp:
 				// The nfproto meta tag comes before the protocol comparison in expressions
 				if nfproto {
-					if compare.Data[0] == byte(nftables.TableFamilyIPv4) {
+					if v.Data[0] == byte(nftables.TableFamilyIPv4) {
 						protocol = "ipv4"
-					} else if compare.Data[0] == byte(nftables.TableFamilyIPv6) {
+					} else if v.Data[0] == byte(nftables.TableFamilyIPv6) {
 						protocol = "ipv6"
 					}
 				}
-			}
-
-			if counter, ok := ex.(*expr.Counter); ok {
-				bytes = int64(counter.Bytes)
-				packets = int64(counter.Packets)
-			}
-
-			if ver, ok := ex.(*expr.Verdict); ok {
-				if ver.Kind == expr.VerdictDrop {
+			case *expr.Counter:
+				bytes = int64(v.Bytes)
+				packets = int64(v.Packets)
+			case *expr.Verdict:
+				if v.Kind == expr.VerdictDrop {
 					verdict = "drop"
 				}
 			}
