@@ -154,7 +154,7 @@ func (r *ManagedRules) genTags(additional []string) []string {
 func (r *ManagedRules) emitUsageCounters(ruleData RuleData) {
 	bytes, packets, err := ruleData.getCounters()
 	if err != nil {
-		r.logger.Errorf("error getting rule counter: %v", err)
+		r.logger.Warnf("error getting rule counter: %v", err)
 		return
 	}
 	err = r.metrics.Count(m.Prefix("fwng-agent.bytes"), *bytes, r.genTags([]string{fmt.Sprintf("id:%s", ruleData.ID)}), 1)
