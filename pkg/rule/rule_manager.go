@@ -66,6 +66,15 @@ func (r *ManagedRules) Start(ctx context.Context) error {
 			r.logger.Infof("got %s, stopping rule update loop for table/chain %v/%v", sig, r.ruleTarget.table.Name, r.ruleTarget.chain.Name)
 			return nil
 		case <-ticker.C:
+			rules, err := r.ruleTarget.Get(r.conn)
+			if err != nil {
+				r.logger.Warnf("error getting rules for sending usage count metric: %v", err)
+			} else {
+				for _, rule := range rules {
+					r.emitUsageCounters(rule)
+				}
+			}
+
 			ruleData, err := r.rulesUpdateFunc()
 			if err != nil {
 				r.logger.Errorf("error with rules update function for table/chain %v/%v: %v", r.ruleTarget.table.Name, r.ruleTarget.chain.Name, err)
@@ -95,15 +104,6 @@ func (r *ManagedRules) Start(ctx context.Context) error {
 			err = r.metrics.Count(m.Prefix("manager_loop_update_data"), 1, r.genTags([]string{"success:true"}), 1)
 			if err != nil {
 				r.logger.Warnf("error sending manager_loop_update_data metric: %v", err)
-			}
-
-			rules, err := r.ruleTarget.Get(r.conn)
-			if err != nil {
-				r.logger.Warnf("error getting rules for sending usage count metric: %v", err)
-			} else {
-				for _, rule := range rules {
-					r.emitUsageCounters(rule)
-				}
 			}
 
 			// only flush if things went well above
@@ -159,10 +159,10 @@ func (r *ManagedRules) emitUsageCounters(ruleData RuleData) {
 	}
 	err = r.metrics.Count(m.Prefix("fwng-agent.bytes"), *bytes, r.genTags([]string{fmt.Sprintf("id:%s", ruleData.ID)}), 1)
 	if err != nil {
-		r.logger.Warnf("error sending fng-agent.bytes metric: %v", err)
+		r.logger.Warnf("error sending fwng-agent.bytes metric: %v", err)
 	}
 	err = r.metrics.Count(m.Prefix("fwng-agent.packets"), *packets, r.genTags([]string{fmt.Sprintf("id:%s", ruleData.ID)}), 1)
 	if err != nil {
-		r.logger.Warnf("error sending fng-agent.packets metric: %v", err)
+		r.logger.Warnf("error sending fwng-agent.packets metric: %v", err)
 	}
 }
