@@ -22,25 +22,25 @@ func TestNewRuleData(t *testing.T) {
 	assert.Equal(t, rD.Expressions[1], &expr.Cmp{Op: 0x0, Register: 0x1, Data: []uint8{0x2}})
 }
 
-func TestGetCounters(t *testing.T) {
+func TestCounters(t *testing.T) {
 	id := []byte{0xd, 0xe, 0xa, 0xd}
 	bytes := uint64(9000)
 	packets := uint64(1000)
 	expressions := []expr.Any{&expr.Counter{Bytes: bytes, Packets: packets}}
 
 	rd := NewRuleData(id, expressions)
-	resBytes, resPackets, resError := rd.getCounters()
+	resBytes, resPackets, resError := rd.counters()
 
 	assert.Nil(t, resError)
 	assert.EqualValues(t, *resBytes, bytes)
 	assert.EqualValues(t, *resPackets, packets)
 }
 
-func TestGetCountersNoExpressions(t *testing.T) {
+func TestCountersNoExpressions(t *testing.T) {
 	id := []byte{0xd, 0xe, 0xa, 0xd}
 
 	rd := NewRuleData(id, []expr.Any{})
-	resBytes, resPackets, resError := rd.getCounters()
+	resBytes, resPackets, resError := rd.counters()
 
 	assert.NotNil(t, resError)
 	assert.Nil(t, resBytes)

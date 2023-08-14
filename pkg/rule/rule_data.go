@@ -24,7 +24,7 @@ func NewRuleData(id []byte, exprs []expr.Any) RuleData {
 	}
 }
 
-func (d RuleData) getCounters() (bytes *int64, packets *int64, error error) {
+func (d RuleData) counters() (bytes *int64, packets *int64, error error) {
 	for _, ex := range d.Expressions {
 		switch v := ex.(type) {
 		case *expr.Counter:

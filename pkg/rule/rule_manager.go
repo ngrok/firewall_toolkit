@@ -152,7 +152,7 @@ func (r *ManagedRules) genTags(additional []string) []string {
 }
 
 func (r *ManagedRules) emitUsageCounters(ruleData RuleData) {
-	bytes, packets, err := ruleData.getCounters()
+	bytes, packets, err := ruleData.counters()
 	if err != nil {
 		r.logger.Warnf("error getting rule counter: %v", err)
 		return
