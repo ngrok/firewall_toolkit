@@ -203,3 +203,4 @@ Please see our [contributing document](/CONTRIBUTING.md) if you would like to pa
 - [@masonj188](https://github.com/masonj188)
 - [@Megalonia](https://github.com/Megalonia)
 - [@blainsmith](https://github.com/blainsmith)
+- [@rachelkolavo](https://github.com/rkolavo)
