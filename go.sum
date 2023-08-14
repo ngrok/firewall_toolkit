@@ -16,6 +16,8 @@ github.com/google/gopacket v1.1.19 h1:ves8RnFZPGiFnTS0uPQStjwru6uO6h+nlr9j6fL7kF
 github.com/google/gopacket v1.1.19/go.mod h1:iJ8V8n6KS+z2U1A8pUwu8bW5SyEMkXJB8Yo/Vo+TKTo=
 github.com/google/nftables v0.1.1-0.20221212161945-2a00dee9fcbe h1:LWreCZ6KgChaUFMPg54XkDLt6Lq5waMCudSi8J4FTEw=
 github.com/google/nftables v0.1.1-0.20221212161945-2a00dee9fcbe/go.mod h1:BVIYo3cdnT4qSylnYqcd5YtmXhr51cJPGtnLBe/uLBU=
+github.com/google/nftables v0.1.1-0.20230803061423-d27cc52f157d h1:hBE1UkK3Hr79IgsUsOWvsMx4f5M/fi1GA2SJYxxVWbo=
+github.com/google/nftables v0.1.1-0.20230803061423-d27cc52f157d/go.mod h1:7OLL+86wZKfBnAJxNxmdcZ0ebbgdp/A28fcagx9oJqA=
 github.com/josharian/native v1.1.0 h1:uuaP0hAbW7Y4l0ZRQ6C9zfb7Mg1mbFKry/xzDAfmtLA=
 github.com/josharian/native v1.1.0/go.mod h1:7X/raswPFr05uY3HiLlYeyQntB6OO7E/d2Cu7qoaN2w=
 github.com/mattn/go-colorable v0.1.12/go.mod h1:u5H1YNBxpqRaxsYJYSkiCWKzEfiAb1Gb520KVy5xxl4=

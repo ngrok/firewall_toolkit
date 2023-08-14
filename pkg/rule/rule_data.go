@@ -34,5 +34,5 @@ func (d RuleData) counters() (bytes *int64, packets *int64, error error) {
 		}
 	}
 
-	return nil, nil, fmt.Errorf("No counter expression found for rule %s", d.ID)
+	return nil, nil, fmt.Errorf("no counter expression found for rule %s", d.ID)
 }
