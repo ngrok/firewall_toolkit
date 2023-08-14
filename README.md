@@ -197,4 +197,9 @@ Please see our [contributing document](/CONTRIBUTING.md) if you would like to pa
 
 ### Authors
 
-`firewall_toolkit` is designed, authored, reviewed and supported by the members of ngrok's network edge team, including [@joewilliams](https://github.com/joewilliams), [@masonj188](https://github.com/masonj188) and [@Megalonia](https://github.com/Megalonia).
+`firewall_toolkit` is designed, authored, reviewed and supported by the members of ngrok's network edge team, including:
+
+- [@joewilliams](https://github.com/joewilliams)
+- [@masonj188](https://github.com/masonj188)
+- [@Megalonia](https://github.com/Megalonia)
+- [@blainsmith](https://github.com/blainsmith)
