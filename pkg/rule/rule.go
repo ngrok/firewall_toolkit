@@ -126,6 +126,24 @@ func (r *RuleTarget) GetTableAndChain() (*nftables.Table, *nftables.Chain) {
 	return r.table, r.chain
 }
 
+// Get the rule data associated with a table and chain
+func (r *RuleTarget) Get(c *nftables.Conn) ([]RuleData, error) {
+	rules, err := c.GetRules(r.table, r.chain)
+	if err != nil {
+		return nil, err
+	}
+
+	ruleData := make([]RuleData, len(rules))
+	for i, rule := range rules {
+		ruleData[i] = RuleData{
+			ID:          rule.UserData,
+			Expressions: rule.Exprs,
+		}
+	}
+
+	return ruleData, nil
+}
+
 func genRuleDelta(existingRules []*nftables.Rule, newRules []RuleData) (add []RuleData, remove []*nftables.Rule) {
 	existingRuleMap := make(map[string]*nftables.Rule)
 	for _, existingRule := range existingRules {
