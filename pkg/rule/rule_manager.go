@@ -97,19 +97,12 @@ func (r *ManagedRules) Start(ctx context.Context) error {
 				r.logger.Warnf("error sending manager_loop_update_data metric: %v", err)
 			}
 
-			ruleUsageCounters, err := r.ruleTarget.GetRuleUsageCounters(r.conn)
+			rules, err := r.ruleTarget.Get(r.conn)
 			if err != nil {
 				r.logger.Warnf("error getting rules for sending usage count metric: %v", err)
 			} else {
-				for _, counter := range ruleUsageCounters {
-					err = r.metrics.Count(m.Prefix("fwng-agent.bytes"), counter.bytes, r.genTags([]string{fmt.Sprintf("verdict:%s", counter.verdict), fmt.Sprintf("protocol:%s", counter.protocol), fmt.Sprintf("id:%s", counter.id)}), 1)
-					if err != nil {
-						r.logger.Warnf("error sending fng-agent.bytes metric: %v", err)
-					}
-					err = r.metrics.Count(m.Prefix("fwng-agent.packets"), counter.packets, r.genTags([]string{fmt.Sprintf("verdict:%s", counter.verdict), fmt.Sprintf("protocol:%s", counter.protocol), fmt.Sprintf("id:%s", counter.id)}), 1)
-					if err != nil {
-						r.logger.Warnf("error sending fng-agent.packets metric: %v", err)
-					}
+				for _, rule := range rules {
+					r.emitUsageCounters(rule)
 				}
 			}
 
@@ -156,4 +149,20 @@ func (r *ManagedRules) genTags(additional []string) []string {
 	}
 
 	return append(additional, defaultTags...)
+}
+
+func (r *ManagedRules) emitUsageCounters(ruleData RuleData) {
+	bytes, packets, err := ruleData.getCounters()
+	if err != nil {
+		r.logger.Errorf("error getting rule counter: %v", err)
+		return
+	}
+	err = r.metrics.Count(m.Prefix("fwng-agent.bytes"), *bytes, r.genTags([]string{fmt.Sprintf("id:%s", ruleData.ID)}), 1)
+	if err != nil {
+		r.logger.Warnf("error sending fng-agent.bytes metric: %v", err)
+	}
+	err = r.metrics.Count(m.Prefix("fwng-agent.packets"), *packets, r.genTags([]string{fmt.Sprintf("id:%s", ruleData.ID)}), 1)
+	if err != nil {
+		r.logger.Warnf("error sending fng-agent.packets metric: %v", err)
+	}
 }

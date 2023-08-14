@@ -10,21 +10,12 @@ import (
 	"fmt"
 
 	"github.com/google/nftables"
-	"github.com/google/nftables/expr"
 )
 
 // RuleTarget represents a location to manipulate nftables rules
 type RuleTarget struct {
 	table *nftables.Table
 	chain *nftables.Chain
-}
-
-type RuleUsageCounter struct {
-	protocol string
-	verdict  string
-	bytes    int64
-	packets  int64
-	id       []byte
 }
 
 // Create a new location to manipulate nftables rules
@@ -151,56 +142,6 @@ func (r *RuleTarget) Get(c *nftables.Conn) ([]RuleData, error) {
 	}
 
 	return ruleData, nil
-}
-
-// Get counters for total packets and bytes each rule has seen since last reset
-func (r *RuleTarget) GetRuleUsageCounters(c *nftables.Conn) ([]RuleUsageCounter, error) {
-	rules, err := r.Get(c)
-
-	if err != nil {
-		return nil, err
-	}
-
-	usageCounters := make([]RuleUsageCounter, len(rules))
-	for i, rule := range rules {
-		verdict := "accept"
-		protocol := ""
-		nfproto := false
-		var bytes, packets int64
-
-		for _, ex := range rule.Expressions {
-			switch v := ex.(type) {
-			case *expr.Meta:
-				nfproto = v.Key == expr.MetaKeyNFPROTO
-			case *expr.Cmp:
-				// The nfproto meta tag comes before the protocol comparison in expressions
-				if nfproto {
-					if v.Data[0] == byte(nftables.TableFamilyIPv4) {
-						protocol = "ipv4"
-					} else if v.Data[0] == byte(nftables.TableFamilyIPv6) {
-						protocol = "ipv6"
-					}
-				}
-			case *expr.Counter:
-				bytes = int64(v.Bytes)
-				packets = int64(v.Packets)
-			case *expr.Verdict:
-				if v.Kind == expr.VerdictDrop {
-					verdict = "drop"
-				}
-			}
-		}
-
-		usageCounters[i] = RuleUsageCounter{
-			verdict:  verdict,
-			protocol: protocol,
-			bytes:    bytes,
-			packets:  packets,
-		}
-	}
-
-	return usageCounters, nil
-
 }
 
 func genRuleDelta(existingRules []*nftables.Rule, newRules []RuleData) (add []RuleData, remove []*nftables.Rule) {

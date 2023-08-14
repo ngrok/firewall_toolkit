@@ -1,6 +1,8 @@
 package rule
 
 import (
+	"fmt"
+
 	"github.com/google/nftables/expr"
 )
 
@@ -20,4 +22,17 @@ func NewRuleData(id []byte, exprs []expr.Any) RuleData {
 		Expressions: exprs,
 		ID:          id,
 	}
+}
+
+func (d RuleData) getCounters() (bytes *int64, packets *int64, error error) {
+	for _, ex := range d.Expressions {
+		switch v := ex.(type) {
+		case *expr.Counter:
+			bytes := int64(v.Bytes)
+			packets := int64(v.Packets)
+			return &bytes, &packets, nil
+		}
+	}
+
+	return nil, nil, fmt.Errorf("No counter expression found for rule %s", d.ID)
 }
