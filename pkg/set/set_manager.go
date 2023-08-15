@@ -68,6 +68,13 @@ func (s *ManagedSet) Start(ctx context.Context) error {
 			s.logger.Infof("got %s, stopping set update loop for table/set %v/%v", sig, s.set.set.Table.Name, s.set.set.Name)
 			return nil
 		case <-ticker.C:
+			countedSetData, err := s.set.getCountedSetData(s.conn)
+			if err != nil {
+				s.logger.Warnf("error getting set data for sending usage count metric: %v", err)
+			} else {
+				s.emitUsageCounters(countedSetData)
+			}
+
 			data, err := s.setUpdateFunc()
 			if err != nil {
 				s.logger.Errorf("error with set update function for table/set %v/%v: %v", s.set.set.Table.Name, s.set.set.Name, err)
@@ -138,4 +145,33 @@ func (s *ManagedSet) genTags(additional []string) []string {
 	}
 
 	return append(additional, defaultTags...)
+}
+
+func (s *ManagedSet) emitUsageCounters(setDataList []countedSetData) {
+	for _, setData := range setDataList {
+		var tags []string
+		if setData.setData.Port > 0 {
+			tags = []string{fmt.Sprintf("range-start:%v", setData.setData.Port)}
+		} else if setData.setData.PortRangeStart > 0 {
+			tags = []string{fmt.Sprintf("range-start:%v", setData.setData.PortRangeStart), fmt.Sprintf("range-end:%v", setData.setData.PortRangeEnd)}
+		} else if setData.setData.Prefix.IsValid() {
+			tags = []string{fmt.Sprintf("range-start:%s", setData.setData.Prefix)}
+		} else if setData.setData.Address.IsValid() {
+			tags = []string{fmt.Sprintf("range-start:%s", setData.setData.Address)}
+		} else if setData.setData.AddressRangeStart.IsValid() {
+			tags = []string{fmt.Sprintf("range-start:%s", setData.setData.AddressRangeStart), fmt.Sprintf("range-end:%s", setData.setData.AddressRangeEnd)}
+		} else {
+			s.logger.Warnf("invalid set data encountered while emitting counter metrics: %+v", setData.setData)
+			continue
+		}
+
+		err := s.metrics.Count(m.Prefix("fwng-agent.bytes"), setData.bytes, s.genTags(tags), 1)
+		if err != nil {
+			s.logger.Warnf("error sending fwng-agent.bytes metric: %v", err)
+		}
+		err = s.metrics.Count(m.Prefix("fwng-agent.packets"), setData.packets, s.genTags(tags), 1)
+		if err != nil {
+			s.logger.Warnf("error sending fwng-agent.packets metric: %v", err)
+		}
+	}
 }

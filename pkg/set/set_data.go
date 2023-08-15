@@ -19,6 +19,12 @@ type SetData struct {
 	Prefix            netip.Prefix
 }
 
+type countedSetData struct {
+	setData SetData
+	packets int64
+	bytes   int64
+}
+
 // Convert a string address to the SetData type
 func AddressStringToSetData(addressString string) (SetData, error) {
 	address, err := netip.ParseAddr(addressString)
