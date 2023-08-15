@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/nftables"
 	"github.com/google/nftables/binaryutil"
+	"github.com/google/nftables/expr"
 	"github.com/mdlayher/netlink"
 	"github.com/stretchr/testify/assert"
 )
@@ -601,4 +602,57 @@ func TestManagerGetSet(t *testing.T) {
 	mSet := mS.GetSet()
 
 	assert.Equal(t, nfSet, mSet.GetSet())
+}
+
+func TestBadIntervalCountedAddrSetData(t *testing.T) {
+	elements := []nftables.SetElement{
+		{Key: []byte{198, 51, 100, 2}, IntervalEnd: false},
+		{Key: []byte{198, 51, 100, 1}, IntervalEnd: true},
+	}
+
+	res, err := countedAddrSetData(elements)
+
+	assert.Error(t, err)
+	assert.Nil(t, res)
+}
+
+func TestGoodCountedAddrSetData(t *testing.T) {
+	elements := []nftables.SetElement{
+		{Key: []byte{198, 51, 100, 2}, IntervalEnd: true},
+		{Key: []byte{198, 51, 100, 1}, Counter: &expr.Counter{Bytes: 100, Packets: 1}},
+		{Key: []byte{203, 0, 113, 104}, IntervalEnd: true},
+		{Key: []byte{203, 0, 113, 100}, Counter: &expr.Counter{Bytes: 200, Packets: 2}},
+	}
+
+	res, err := countedAddrSetData(elements)
+
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(res))
+	assert.Equal(t, countedSetData{bytes: 100, packets: 1, setData: SetData{Address: netip.MustParseAddr("198.51.100.1")}}, res[0])
+	assert.Equal(t, countedSetData{bytes: 200, packets: 2, setData: SetData{Prefix: netip.MustParsePrefix("203.0.113.100/30")}}, res[1])
+}
+
+func TestBadIntervalCountedPortSetData(t *testing.T) {
+	elements := []nftables.SetElement{
+		{Key: []byte{3, 234}, IntervalEnd: false},
+		{Key: []byte{3, 232}, IntervalEnd: true},
+	}
+
+	res, err := countedPortSetData(elements)
+
+	assert.Error(t, err)
+	assert.Nil(t, res)
+}
+
+func TestGoodCountedPortSetData(t *testing.T) {
+	elements := []nftables.SetElement{
+		{Key: []byte{3, 234}, IntervalEnd: true},
+		{Key: []byte{3, 232}, Counter: &expr.Counter{Bytes: 100, Packets: 1}},
+	}
+
+	res, err := countedPortSetData(elements)
+
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(res))
+	assert.Equal(t, countedSetData{bytes: 100, packets: 1, setData: SetData{PortRangeStart: 1000, PortRangeEnd: 1001}}, res[0])
 }
