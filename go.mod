@@ -6,7 +6,7 @@ require (
 	github.com/DataDog/datadog-go/v5 v5.2.0
 	github.com/gaissmai/extnetip v0.3.3
 	github.com/google/gopacket v1.1.19
-	github.com/google/nftables v0.1.1-0.20221212161945-2a00dee9fcbe
+	github.com/google/nftables v0.1.1-0.20230803061423-d27cc52f157d
 	github.com/mdlayher/netlink v1.7.1
 	github.com/rs/zerolog v1.28.0
 	github.com/stretchr/testify v1.8.1
