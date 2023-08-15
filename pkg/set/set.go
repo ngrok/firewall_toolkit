@@ -7,7 +7,6 @@ package set
 
 import (
 	"fmt"
-	"net/netip"
 	"sync"
 
 	"github.com/gaissmai/extnetip"
@@ -205,7 +204,7 @@ func (s *Set) getCountedSetData(c *nftables.Conn) ([]countedSetData, error) {
 }
 
 func countedPortSetData(elements []nftables.SetElement) ([]countedSetData, error) {
-	setData := []countedSetData{}
+	setDataList := []countedSetData{}
 
 	// set elements come in pairs, first the end of range, then start of range which contains counters
 	for i := 0; i < len(elements); i++ {
@@ -220,28 +219,23 @@ func countedPortSetData(elements []nftables.SetElement) ([]countedSetData, error
 			return nil, fmt.Errorf("expected set element not to be an interval end: %+v", startElement)
 		}
 
-		startPort := binaryutil.BigEndian.Uint16(startElement.Key)
-		endPortExcl := binaryutil.BigEndian.Uint16(endElement.Key)
-		endPort := endPortExcl - 1
+		setData, err := PortBytesToSetData(startElement.Key, endElement.Key)
+		if err != nil {
+			return nil, err
+		}
 
-		countedPortSetData := countedSetData{
+		setDataList = append(setDataList, countedSetData{
 			bytes:   int64(startElement.Counter.Bytes),
 			packets: int64(startElement.Counter.Packets),
-		}
-
-		if startPort == endPort {
-			countedPortSetData.setData = SetData{Port: startPort}
-		} else {
-			countedPortSetData.setData = SetData{PortRangeStart: startPort, PortRangeEnd: endPort}
-		}
-		setData = append(setData, countedPortSetData)
+			setData: setData,
+		})
 	}
 
-	return setData, nil
+	return setDataList, nil
 }
 
 func countedAddrSetData(elements []nftables.SetElement) ([]countedSetData, error) {
-	setData := []countedSetData{}
+	setDataList := []countedSetData{}
 
 	// set elements come in pairs, first the end of range, then start of range which contains counters
 	for i := 0; i < len(elements); i++ {
@@ -256,33 +250,19 @@ func countedAddrSetData(elements []nftables.SetElement) ([]countedSetData, error
 			return nil, fmt.Errorf("expected set element not to be an interval end: %+v", startElement)
 		}
 
-		var startAddr, endAddrExcl netip.Addr
-		var ok bool
-
-		if endAddrExcl, ok = netip.AddrFromSlice(endElement.Key); !ok {
-			return nil, fmt.Errorf("expected set element to be address: %+v", endElement.Key)
-		}
-		endAddr := endAddrExcl.Prev()
-
-		if startAddr, ok = netip.AddrFromSlice(startElement.Key); !ok {
-			return nil, fmt.Errorf("expected set element to be address: %+v", startElement.Key)
+		setData, err := AddressBytesToSetData(startElement.Key, endElement.Key)
+		if err != nil {
+			return nil, err
 		}
 
-		countedAddrSetData := countedSetData{
+		setDataList = append(setDataList, countedSetData{
 			bytes:   int64(startElement.Counter.Bytes),
 			packets: int64(startElement.Counter.Packets),
-		}
-		if startAddr == endAddr {
-			countedAddrSetData.setData = SetData{Address: startAddr}
-		} else if prefix, ok := extnetip.Prefix(startAddr, endAddr); ok {
-			countedAddrSetData.setData = SetData{Prefix: prefix}
-		} else {
-			countedAddrSetData.setData = SetData{AddressRangeStart: startAddr, AddressRangeEnd: endAddr}
-		}
-		setData = append(setData, countedAddrSetData)
+			setData: setData,
+		})
 	}
 
-	return setData, nil
+	return setDataList, nil
 }
 
 func generateElements(keyType nftables.SetDatatype, list []SetData) ([]nftables.SetElement, error) {

@@ -6,6 +6,9 @@ import (
 	"net/netip"
 	"strconv"
 	"strings"
+
+	"github.com/gaissmai/extnetip"
+	"github.com/google/nftables/binaryutil"
 )
 
 // SetData is a struct that is used to create elements of a given set based on the key type of the set
@@ -265,4 +268,42 @@ func NetipAddrPortsToSetData(addrports []netip.AddrPort) ([]SetData, []SetData, 
 // Convert netip.AddrPort to SetData type, returns a address and a port
 func NetipAddrPortToSetData(addrport netip.AddrPort) (SetData, SetData, error) {
 	return SetData{Address: addrport.Addr()}, SetData{Port: uint16(addrport.Port())}, nil
+}
+
+// Convert start and end address bytes to SetData type
+func AddressBytesToSetData(start []byte, end []byte) (SetData, error) {
+	var startAddr, endAddrExcl netip.Addr
+	var ok bool
+
+	if startAddr, ok = netip.AddrFromSlice(start); !ok {
+		return SetData{}, fmt.Errorf("expected set element to be address: %+v", start)
+	}
+
+	if endAddrExcl, ok = netip.AddrFromSlice(end); !ok {
+		return SetData{}, fmt.Errorf("expected set element to be address: %+v", end)
+	}
+	endAddr := endAddrExcl.Prev()
+
+	if startAddr == endAddr {
+		return SetData{Address: startAddr}, nil
+	}
+
+	if prefix, ok := extnetip.Prefix(startAddr, endAddr); ok {
+		return SetData{Prefix: prefix}, nil
+	}
+
+	return SetData{AddressRangeStart: startAddr, AddressRangeEnd: endAddr}, nil
+}
+
+// Convert start and end port bytes to SetData type
+func PortBytesToSetData(start []byte, end []byte) (SetData, error) {
+	startPort := binaryutil.BigEndian.Uint16(start)
+	endPortExcl := binaryutil.BigEndian.Uint16(end)
+	endPort := endPortExcl - 1
+
+	if startPort == endPort {
+		return SetData{Port: startPort}, nil
+	}
+
+	return SetData{PortRangeStart: startPort, PortRangeEnd: endPort}, nil
 }
