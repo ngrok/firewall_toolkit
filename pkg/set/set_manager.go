@@ -149,28 +149,28 @@ func (s *ManagedSet) genTags(additional []string) []string {
 }
 
 func (s *ManagedSet) emitUsageCounters(setDataList []countedSetData) {
-	for _, setData := range setDataList {
+	for _, d := range setDataList {
 		var tags []string
-		if err := utils.ValidatePort(setData.setData.Port); err != nil {
-			tags = []string{fmt.Sprintf("range-start:%v", setData.setData.Port)}
-		} else if err := utils.ValidatePortRange(setData.setData.PortRangeStart, setData.setData.PortRangeEnd); err != nil {
-			tags = []string{fmt.Sprintf("range-start:%v", setData.setData.PortRangeStart), fmt.Sprintf("range-end:%v", setData.setData.PortRangeEnd)}
-		} else if err := utils.ValidatePrefix(setData.setData.Prefix); err != nil {
-			tags = []string{fmt.Sprintf("range-start:%s", setData.setData.Prefix)}
-		} else if err := utils.ValidateAddress(setData.setData.Address); err != nil {
-			tags = []string{fmt.Sprintf("range-start:%s", setData.setData.Address)}
-		} else if err := utils.ValidateAddressRange(setData.setData.AddressRangeStart, setData.setData.AddressRangeEnd); err != nil {
-			tags = []string{fmt.Sprintf("range-start:%s", setData.setData.AddressRangeStart), fmt.Sprintf("range-end:%s", setData.setData.AddressRangeEnd)}
+		if err := utils.ValidatePort(d.setData.Port); err != nil {
+			tags = []string{fmt.Sprintf("startip_endip:%v", d.setData.Port)}
+		} else if err := utils.ValidatePortRange(d.setData.PortRangeStart, d.setData.PortRangeEnd); err != nil {
+			tags = []string{fmt.Sprintf("startip_endip:%v-%v", d.setData.PortRangeStart, d.setData.PortRangeEnd)}
+		} else if err := utils.ValidatePrefix(d.setData.Prefix); err != nil {
+			tags = []string{fmt.Sprintf("startip_endip:%s", d.setData.Prefix)}
+		} else if err := utils.ValidateAddress(d.setData.Address); err != nil {
+			tags = []string{fmt.Sprintf("startip_endip:%s", d.setData.Address)}
+		} else if err := utils.ValidateAddressRange(d.setData.AddressRangeStart, d.setData.AddressRangeEnd); err != nil {
+			tags = []string{fmt.Sprintf("startip_endip:%s-%s", d.setData.AddressRangeStart, d.setData.AddressRangeEnd)}
 		} else {
-			s.logger.Warnf("invalid set data encountered while emitting counter metrics: %+v", setData.setData)
+			s.logger.Warnf("invalid set data encountered while emitting counter metrics: %+v", d.setData)
 			continue
 		}
 
-		err := s.metrics.Count(m.Prefix("fwng-agent.bytes"), setData.bytes, s.genTags(tags), 1)
+		err := s.metrics.Count(m.Prefix("fwng-agent.bytes"), d.bytes, s.genTags(tags), 1)
 		if err != nil {
 			s.logger.Warnf("error sending fwng-agent.bytes metric: %v", err)
 		}
-		err = s.metrics.Count(m.Prefix("fwng-agent.packets"), setData.packets, s.genTags(tags), 1)
+		err = s.metrics.Count(m.Prefix("fwng-agent.packets"), d.packets, s.genTags(tags), 1)
 		if err != nil {
 			s.logger.Warnf("error sending fwng-agent.packets metric: %v", err)
 		}

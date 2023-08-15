@@ -188,6 +188,7 @@ func (s *Set) GetSet() *nftables.Set {
 	return s.set
 }
 
+// Gets a set's SetData with associated counters
 func (s *Set) getCountedSetData(c *nftables.Conn) ([]countedSetData, error) {
 	elements, err := c.GetSetElements(s.set)
 	if err != nil {
