@@ -297,6 +297,14 @@ func AddressBytesToSetData(start []byte, end []byte) (SetData, error) {
 
 // Convert start and end port bytes to SetData type
 func PortBytesToSetData(start []byte, end []byte) (SetData, error) {
+	if len(start) != 2 {
+		return SetData{}, fmt.Errorf("invalid byte array for port: %+v", start)
+	}
+
+	if len(end) != 2 {
+		return SetData{}, fmt.Errorf("invalid byte array for port: %+v", end)
+	}
+
 	startPort := binaryutil.BigEndian.Uint16(start)
 	endPortExcl := binaryutil.BigEndian.Uint16(end)
 	endPort := endPortExcl - 1

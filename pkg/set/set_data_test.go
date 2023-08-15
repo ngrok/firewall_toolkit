@@ -266,21 +266,21 @@ func TestGoodNetipAddrPortsV4(t *testing.T) {
 }
 
 func TestBadStartAddressBytes(t *testing.T) {
-	start := []byte("bad")
-	end := []byte("203.0.113.100")
+	start := []byte{}
+	end := []byte{203, 0, 113, 100}
 
 	res, err := AddressBytesToSetData(start, end)
 	assert.Error(t, err)
-	assert.Equal(t, []SetData{}, res)
+	assert.Equal(t, SetData{}, res)
 }
 
 func TestBadEndAddressBytes(t *testing.T) {
-	start := []byte("203.0.113.100")
-	end := []byte("bad")
+	start := []byte{203, 0, 113, 100}
+	end := []byte{}
 
 	res, err := AddressBytesToSetData(start, end)
 	assert.Error(t, err)
-	assert.Equal(t, []SetData{}, res)
+	assert.Equal(t, SetData{}, res)
 }
 
 func TestGoodRangeAddressBytes(t *testing.T) {
@@ -327,4 +327,31 @@ func TestGoodPrefixBytes(t *testing.T) {
 	res, err := AddressBytesToSetData(start, end)
 	assert.Nil(t, err)
 	assert.Equal(t, parsed, res.Prefix)
+}
+
+func TestBadPortBytes(t *testing.T) {
+	start := []byte{3, 232}
+	end := []byte{}
+
+	res, err := PortBytesToSetData(start, end)
+	assert.Error(t, err)
+	assert.Equal(t, SetData{}, res)
+}
+
+func TestGoodPortBytes(t *testing.T) {
+	start := []byte{3, 232}
+	end := []byte{3, 233}
+
+	res, err := PortBytesToSetData(start, end)
+	assert.Nil(t, err)
+	assert.Equal(t, SetData{Port: 1000}, res)
+}
+
+func TestGoodPortRangeBytes(t *testing.T) {
+	start := []byte{3, 232}
+	end := []byte{3, 234}
+
+	res, err := PortBytesToSetData(start, end)
+	assert.Nil(t, err)
+	assert.Equal(t, SetData{PortRangeStart: 1000, PortRangeEnd: 1001}, res)
 }

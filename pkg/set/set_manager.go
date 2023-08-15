@@ -15,6 +15,7 @@ import (
 
 	"github.com/ngrok/firewall_toolkit/pkg/logger"
 	m "github.com/ngrok/firewall_toolkit/pkg/metrics"
+	"github.com/ngrok/firewall_toolkit/pkg/utils"
 )
 
 type SetUpdateFunc func() ([]SetData, error)
@@ -150,15 +151,15 @@ func (s *ManagedSet) genTags(additional []string) []string {
 func (s *ManagedSet) emitUsageCounters(setDataList []countedSetData) {
 	for _, setData := range setDataList {
 		var tags []string
-		if setData.setData.Port > 0 {
+		if err := utils.ValidatePort(setData.setData.Port); err != nil {
 			tags = []string{fmt.Sprintf("range-start:%v", setData.setData.Port)}
-		} else if setData.setData.PortRangeStart > 0 {
+		} else if err := utils.ValidatePortRange(setData.setData.PortRangeStart, setData.setData.PortRangeEnd); err != nil {
 			tags = []string{fmt.Sprintf("range-start:%v", setData.setData.PortRangeStart), fmt.Sprintf("range-end:%v", setData.setData.PortRangeEnd)}
-		} else if setData.setData.Prefix.IsValid() {
+		} else if err := utils.ValidatePrefix(setData.setData.Prefix); err != nil {
 			tags = []string{fmt.Sprintf("range-start:%s", setData.setData.Prefix)}
-		} else if setData.setData.Address.IsValid() {
+		} else if err := utils.ValidateAddress(setData.setData.Address); err != nil {
 			tags = []string{fmt.Sprintf("range-start:%s", setData.setData.Address)}
-		} else if setData.setData.AddressRangeStart.IsValid() {
+		} else if err := utils.ValidateAddressRange(setData.setData.AddressRangeStart, setData.setData.AddressRangeEnd); err != nil {
 			tags = []string{fmt.Sprintf("range-start:%s", setData.setData.AddressRangeStart), fmt.Sprintf("range-end:%s", setData.setData.AddressRangeEnd)}
 		} else {
 			s.logger.Warnf("invalid set data encountered while emitting counter metrics: %+v", setData.setData)
