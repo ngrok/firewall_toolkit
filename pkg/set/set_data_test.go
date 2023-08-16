@@ -307,6 +307,18 @@ func TestGoodSingleAddressBytes(t *testing.T) {
 	assert.Equal(t, parsed, res.Address)
 }
 
+func TestGoodPrefixAddressBytes(t *testing.T) {
+	start := []byte{203, 0, 113, 100}
+	end := []byte{203, 0, 113, 104}
+
+	parsed := netip.MustParsePrefix("203.0.113.100/30")
+
+	res, err := AddressBytesToSetData(start, end)
+	assert.Nil(t, err)
+	assert.Equal(t, parsed, res.Prefix)
+
+}
+
 func TestGoodSingleAddressBytesV6(t *testing.T) {
 	start := []byte{0x20, 0x01, 0xdb, 0x80, 0x85, 0xa3, 0x00, 0x01, 0x00, 0x01, 0x8a, 0x2e, 0x13, 0x70, 0x73, 0x34}
 	end := []byte{0x20, 0x01, 0xdb, 0x80, 0x85, 0xa3, 0x00, 0x01, 0x00, 0x01, 0x8a, 0x2e, 0x13, 0x70, 0x73, 0x35}
@@ -318,18 +330,16 @@ func TestGoodSingleAddressBytesV6(t *testing.T) {
 	assert.Equal(t, parsed, res.Address)
 }
 
-func TestGoodPrefixBytes(t *testing.T) {
-	start := []byte{203, 0, 113, 100}
-	end := []byte{203, 0, 113, 104}
+func TestBadStartPortBytes(t *testing.T) {
+	start := []byte{}
+	end := []byte{3, 232}
 
-	parsed := netip.MustParsePrefix("203.0.113.100/30")
-
-	res, err := AddressBytesToSetData(start, end)
-	assert.Nil(t, err)
-	assert.Equal(t, parsed, res.Prefix)
+	res, err := PortBytesToSetData(start, end)
+	assert.Error(t, err)
+	assert.Equal(t, SetData{}, res)
 }
 
-func TestBadPortBytes(t *testing.T) {
+func TestBadEndPortBytes(t *testing.T) {
 	start := []byte{3, 232}
 	end := []byte{}
 

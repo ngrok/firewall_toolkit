@@ -195,13 +195,16 @@ func (s *Set) getCountedSetData(c *nftables.Conn) ([]countedSetData, error) {
 		return nil, err
 	}
 
-	if s.set.KeyType == nftables.TypeIPAddr || s.set.KeyType == nftables.TypeIP6Addr {
+	switch s.set.KeyType {
+	case nftables.TypeIPAddr:
+		fallthrough
+	case nftables.TypeIP6Addr:
 		return countedAddrSetData(elements)
-	} else if s.set.KeyType == nftables.TypeInetService {
+	case nftables.TypeInetService:
 		return countedPortSetData(elements)
+	default:
+		return nil, fmt.Errorf("unexpected set key type: %v", s.set.KeyType)
 	}
-
-	return nil, fmt.Errorf("unexpected set key type: %v", s.set.KeyType)
 }
 
 func countedPortSetData(elements []nftables.SetElement) ([]countedSetData, error) {
@@ -209,15 +212,9 @@ func countedPortSetData(elements []nftables.SetElement) ([]countedSetData, error
 
 	// set elements come in pairs, first the end of range, then start of range which contains counters
 	for i := 0; i < len(elements); i++ {
-		endElement := elements[i]
-		if !endElement.IntervalEnd {
-			return nil, fmt.Errorf("expected set element to be an interval end: %+v", endElement)
-		}
-
-		i++
-		startElement := elements[i]
-		if startElement.IntervalEnd {
-			return nil, fmt.Errorf("expected set element not to be an interval end: %+v", startElement)
+		startElement, endElement, err := nextRangeElements(elements, &i)
+		if err != nil {
+			return nil, err
 		}
 
 		setData, err := PortBytesToSetData(startElement.Key, endElement.Key)
@@ -235,20 +232,33 @@ func countedPortSetData(elements []nftables.SetElement) ([]countedSetData, error
 	return setDataList, nil
 }
 
+func nextRangeElements(elements []nftables.SetElement, i *int) (start nftables.SetElement, end nftables.SetElement, err error) {
+	if (*i + 1) >= (len(elements)) {
+		return nftables.SetElement{}, nftables.SetElement{}, fmt.Errorf("index out of bounds getting range elements")
+	}
+
+	endElement := elements[*i]
+	if !endElement.IntervalEnd {
+		return nftables.SetElement{}, nftables.SetElement{}, fmt.Errorf("expected set element to be an interval end: %+v", endElement)
+	}
+
+	*i++
+	startElement := elements[*i]
+	if startElement.IntervalEnd {
+		return nftables.SetElement{}, nftables.SetElement{}, fmt.Errorf("expected set element not to be an interval end: %+v", startElement)
+	}
+
+	return startElement, endElement, nil
+}
+
 func countedAddrSetData(elements []nftables.SetElement) ([]countedSetData, error) {
 	setDataList := []countedSetData{}
 
 	// set elements come in pairs, first the end of range, then start of range which contains counters
 	for i := 0; i < len(elements); i++ {
-		endElement := elements[i]
-		if !endElement.IntervalEnd {
-			return nil, fmt.Errorf("expected set element to be an interval end: %+v", endElement)
-		}
-
-		i++
-		startElement := elements[i]
-		if startElement.IntervalEnd {
-			return nil, fmt.Errorf("expected set element not to be an interval end: %+v", startElement)
+		startElement, endElement, err := nextRangeElements(elements, &i)
+		if err != nil {
+			return nil, err
 		}
 
 		setData, err := AddressBytesToSetData(startElement.Key, endElement.Key)
