@@ -188,6 +188,94 @@ func (s *Set) GetSet() *nftables.Set {
 	return s.set
 }
 
+// Gets a set's SetData with associated counters
+func (s *Set) getCountedSetData(c *nftables.Conn) ([]countedSetData, error) {
+	elements, err := c.GetSetElements(s.set)
+	if err != nil {
+		return nil, err
+	}
+
+	switch s.set.KeyType {
+	case nftables.TypeIPAddr:
+		fallthrough
+	case nftables.TypeIP6Addr:
+		return countedAddrSetData(elements)
+	case nftables.TypeInetService:
+		return countedPortSetData(elements)
+	default:
+		return nil, fmt.Errorf("unexpected set key type: %v", s.set.KeyType)
+	}
+}
+
+func countedPortSetData(elements []nftables.SetElement) ([]countedSetData, error) {
+	setDataList := []countedSetData{}
+
+	// set elements come in pairs, first the end of range, then start of range which contains counters
+	for i := 0; i < len(elements); i++ {
+		startElement, endElement, err := nextRangeElements(elements, &i)
+		if err != nil {
+			return nil, err
+		}
+
+		setData, err := PortBytesToSetData(startElement.Key, endElement.Key)
+		if err != nil {
+			return nil, err
+		}
+
+		setDataList = append(setDataList, countedSetData{
+			bytes:   int64(startElement.Counter.Bytes),
+			packets: int64(startElement.Counter.Packets),
+			setData: setData,
+		})
+	}
+
+	return setDataList, nil
+}
+
+func nextRangeElements(elements []nftables.SetElement, i *int) (start nftables.SetElement, end nftables.SetElement, err error) {
+	if (*i + 1) >= (len(elements)) {
+		return nftables.SetElement{}, nftables.SetElement{}, fmt.Errorf("index out of bounds getting range elements")
+	}
+
+	endElement := elements[*i]
+	if !endElement.IntervalEnd {
+		return nftables.SetElement{}, nftables.SetElement{}, fmt.Errorf("expected set element to be an interval end: %+v", endElement)
+	}
+
+	*i++
+	startElement := elements[*i]
+	if startElement.IntervalEnd {
+		return nftables.SetElement{}, nftables.SetElement{}, fmt.Errorf("expected set element not to be an interval end: %+v", startElement)
+	}
+
+	return startElement, endElement, nil
+}
+
+func countedAddrSetData(elements []nftables.SetElement) ([]countedSetData, error) {
+	setDataList := []countedSetData{}
+
+	// set elements come in pairs, first the end of range, then start of range which contains counters
+	for i := 0; i < len(elements); i++ {
+		startElement, endElement, err := nextRangeElements(elements, &i)
+		if err != nil {
+			return nil, err
+		}
+
+		setData, err := AddressBytesToSetData(startElement.Key, endElement.Key)
+		if err != nil {
+			return nil, err
+		}
+
+		setDataList = append(setDataList, countedSetData{
+			bytes:   int64(startElement.Counter.Bytes),
+			packets: int64(startElement.Counter.Packets),
+			setData: setData,
+		})
+	}
+
+	return setDataList, nil
+}
+
 func generateElements(keyType nftables.SetDatatype, list []SetData) ([]nftables.SetElement, error) {
 	// we use interval sets for everything so we have a common set to build on top of
 	// due to this for each set type we need to generate start and ends of each interval even for single IPs

@@ -264,3 +264,104 @@ func TestGoodNetipAddrPortsV4(t *testing.T) {
 	assert.Equal(t, addrs[0].Address, parsed.Addr())
 	assert.Equal(t, ports[0].Port, parsed.Port())
 }
+
+func TestBadStartAddressBytes(t *testing.T) {
+	start := []byte{}
+	end := []byte{203, 0, 113, 100}
+
+	res, err := AddressBytesToSetData(start, end)
+	assert.Error(t, err)
+	assert.Equal(t, SetData{}, res)
+}
+
+func TestBadEndAddressBytes(t *testing.T) {
+	start := []byte{203, 0, 113, 100}
+	end := []byte{}
+
+	res, err := AddressBytesToSetData(start, end)
+	assert.Error(t, err)
+	assert.Equal(t, SetData{}, res)
+}
+
+func TestGoodRangeAddressBytes(t *testing.T) {
+	start := []byte{198, 51, 100, 1}
+	end := []byte{198, 51, 100, 101} // end range is exclusive
+
+	parsedOne := netip.MustParseAddr("198.51.100.1")
+	parsedTwo := netip.MustParseAddr("198.51.100.100")
+
+	res, err := AddressBytesToSetData(start, end)
+	assert.Nil(t, err)
+	assert.Equal(t, parsedOne, res.AddressRangeStart)
+	assert.Equal(t, parsedTwo, res.AddressRangeEnd)
+}
+
+func TestGoodSingleAddressBytes(t *testing.T) {
+	start := []byte{198, 51, 100, 1}
+	end := []byte{198, 51, 100, 2} // end range is exclusive
+
+	parsed := netip.MustParseAddr("198.51.100.1")
+
+	res, err := AddressBytesToSetData(start, end)
+	assert.Nil(t, err)
+	assert.Equal(t, parsed, res.Address)
+}
+
+func TestGoodPrefixAddressBytes(t *testing.T) {
+	start := []byte{203, 0, 113, 100}
+	end := []byte{203, 0, 113, 104}
+
+	parsed := netip.MustParsePrefix("203.0.113.100/30")
+
+	res, err := AddressBytesToSetData(start, end)
+	assert.Nil(t, err)
+	assert.Equal(t, parsed, res.Prefix)
+
+}
+
+func TestGoodSingleAddressBytesV6(t *testing.T) {
+	start := []byte{0x20, 0x01, 0xdb, 0x80, 0x85, 0xa3, 0x00, 0x01, 0x00, 0x01, 0x8a, 0x2e, 0x13, 0x70, 0x73, 0x34}
+	end := []byte{0x20, 0x01, 0xdb, 0x80, 0x85, 0xa3, 0x00, 0x01, 0x00, 0x01, 0x8a, 0x2e, 0x13, 0x70, 0x73, 0x35}
+
+	parsed := netip.MustParseAddr("2001:db80:85a3:1:1:8a2e:1370:7334")
+
+	res, err := AddressBytesToSetData(start, end)
+	assert.Nil(t, err)
+	assert.Equal(t, parsed, res.Address)
+}
+
+func TestBadStartPortBytes(t *testing.T) {
+	start := []byte{}
+	end := []byte{3, 232}
+
+	res, err := PortBytesToSetData(start, end)
+	assert.Error(t, err)
+	assert.Equal(t, SetData{}, res)
+}
+
+func TestBadEndPortBytes(t *testing.T) {
+	start := []byte{3, 232}
+	end := []byte{}
+
+	res, err := PortBytesToSetData(start, end)
+	assert.Error(t, err)
+	assert.Equal(t, SetData{}, res)
+}
+
+func TestGoodPortBytes(t *testing.T) {
+	start := []byte{3, 232}
+	end := []byte{3, 233}
+
+	res, err := PortBytesToSetData(start, end)
+	assert.Nil(t, err)
+	assert.Equal(t, SetData{Port: 1000}, res)
+}
+
+func TestGoodPortRangeBytes(t *testing.T) {
+	start := []byte{3, 232}
+	end := []byte{3, 234}
+
+	res, err := PortBytesToSetData(start, end)
+	assert.Nil(t, err)
+	assert.Equal(t, SetData{PortRangeStart: 1000, PortRangeEnd: 1001}, res)
+}

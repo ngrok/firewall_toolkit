@@ -15,6 +15,7 @@ import (
 
 	"github.com/ngrok/firewall_toolkit/pkg/logger"
 	m "github.com/ngrok/firewall_toolkit/pkg/metrics"
+	"github.com/ngrok/firewall_toolkit/pkg/utils"
 )
 
 type SetUpdateFunc func() ([]SetData, error)
@@ -68,6 +69,13 @@ func (s *ManagedSet) Start(ctx context.Context) error {
 			s.logger.Infof("got %s, stopping set update loop for table/set %v/%v", sig, s.set.set.Table.Name, s.set.set.Name)
 			return nil
 		case <-ticker.C:
+			countedSetData, err := s.set.getCountedSetData(s.conn)
+			if err != nil {
+				s.logger.Warnf("error getting set data for sending usage count metric: %v", err)
+			} else {
+				s.emitUsageCounters(countedSetData)
+			}
+
 			data, err := s.setUpdateFunc()
 			if err != nil {
 				s.logger.Errorf("error with set update function for table/set %v/%v: %v", s.set.set.Table.Name, s.set.set.Name, err)
@@ -138,4 +146,34 @@ func (s *ManagedSet) genTags(additional []string) []string {
 	}
 
 	return append(additional, defaultTags...)
+}
+
+func (s *ManagedSet) emitUsageCounters(setDataList []countedSetData) {
+	for _, d := range setDataList {
+		var tags []string
+		switch {
+		case utils.ValidatePort(d.setData.Port) != nil:
+			tags = []string{fmt.Sprintf("startip_endip:%v", d.setData.Port)}
+		case utils.ValidatePortRange(d.setData.PortRangeStart, d.setData.PortRangeEnd) != nil:
+			tags = []string{fmt.Sprintf("startip_endip:%v-%v", d.setData.PortRangeStart, d.setData.PortRangeEnd)}
+		case utils.ValidatePrefix(d.setData.Prefix) != nil:
+			tags = []string{fmt.Sprintf("startip_endip:%s", d.setData.Prefix)}
+		case utils.ValidateAddress(d.setData.Address) != nil:
+			tags = []string{fmt.Sprintf("startip_endip:%s", d.setData.Address)}
+		case utils.ValidateAddressRange(d.setData.AddressRangeStart, d.setData.AddressRangeEnd) != nil:
+			tags = []string{fmt.Sprintf("startip_endip:%s-%s", d.setData.AddressRangeStart, d.setData.AddressRangeEnd)}
+		default:
+			s.logger.Warnf("invalid set data encountered while emitting counter metrics: %+v", d.setData)
+			continue
+		}
+
+		err := s.metrics.Count(m.Prefix("fwng-agent.bytes"), d.bytes, s.genTags(tags), 1)
+		if err != nil {
+			s.logger.Warnf("error sending fwng-agent.bytes metric: %v", err)
+		}
+		err = s.metrics.Count(m.Prefix("fwng-agent.packets"), d.packets, s.genTags(tags), 1)
+		if err != nil {
+			s.logger.Warnf("error sending fwng-agent.packets metric: %v", err)
+		}
+	}
 }
