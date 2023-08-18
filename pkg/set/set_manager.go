@@ -152,16 +152,16 @@ func (s *ManagedSet) emitUsageCounters(setDataList []countedSetData) {
 	for _, d := range setDataList {
 		var tags []string
 		switch {
-		case utils.ValidatePort(d.setData.Port) != nil:
+		case utils.ValidatePort(d.setData.Port) == nil:
 			tags = []string{fmt.Sprintf("startip_endip:%v", d.setData.Port)}
-		case utils.ValidatePortRange(d.setData.PortRangeStart, d.setData.PortRangeEnd) != nil:
-			tags = []string{fmt.Sprintf("startip_endip:%v-%v", d.setData.PortRangeStart, d.setData.PortRangeEnd)}
-		case utils.ValidatePrefix(d.setData.Prefix) != nil:
-			tags = []string{fmt.Sprintf("startip_endip:%s", d.setData.Prefix)}
-		case utils.ValidateAddress(d.setData.Address) != nil:
-			tags = []string{fmt.Sprintf("startip_endip:%s", d.setData.Address)}
-		case utils.ValidateAddressRange(d.setData.AddressRangeStart, d.setData.AddressRangeEnd) != nil:
-			tags = []string{fmt.Sprintf("startip_endip:%s-%s", d.setData.AddressRangeStart, d.setData.AddressRangeEnd)}
+		case utils.ValidatePortRange(d.setData.PortRangeStart, d.setData.PortRangeEnd) == nil:
+			tags = []string{fmt.Sprintf("startip_endip:%v-%v\n", d.setData.PortRangeStart, d.setData.PortRangeEnd)}
+		case utils.ValidatePrefix(d.setData.Prefix) == nil:
+			tags = []string{fmt.Sprintf("startip_endip:%v", d.setData.Prefix)}
+		case utils.ValidateAddress(d.setData.Address) == nil:
+			tags = []string{fmt.Sprintf("startip_endip:%v", d.setData.Address)}
+		case utils.ValidateAddressRange(d.setData.AddressRangeStart, d.setData.AddressRangeEnd) == nil:
+			tags = []string{fmt.Sprintf("startip_endip:%v-%v", d.setData.AddressRangeStart, d.setData.AddressRangeEnd)}
 		default:
 			s.logger.Warnf("invalid set data encountered while emitting counter metrics: %+v", d.setData)
 			continue
