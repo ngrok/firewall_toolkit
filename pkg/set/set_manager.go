@@ -100,10 +100,6 @@ func (s *ManagedSet) Start(ctx context.Context) error {
 					s.logger.Warnf("error sending manager_loop_update_data metric: %v", err)
 				}
 
-				if s.clearOnError {
-					s.set.currentSetData = nil
-				}
-
 				continue
 			}
 			err = s.metrics.Count(m.Prefix("manager_loop_update_data"), 1, s.genTags([]string{"success:true"}), 1)
@@ -124,6 +120,7 @@ func (s *ManagedSet) Start(ctx context.Context) error {
 				}
 
 				if s.clearOnError {
+					s.logger.Warnf("clear on error for table/set %v/%v, next manager run starts from scratch")
 					s.set.currentSetData = nil
 				}
 
