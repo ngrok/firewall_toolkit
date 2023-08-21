@@ -7,7 +7,6 @@ package set
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/gaissmai/extnetip"
 	"github.com/google/nftables"
@@ -28,10 +27,6 @@ const (
 // Set represents an nftables a set on a given table
 type Set struct {
 	set *nftables.Set
-	// SetData representation of each of the
-	// items currently in the set
-	currentSetData map[SetData]struct{}
-	mu             *sync.Mutex
 }
 
 // Create a new set on a table with a given key type
@@ -99,7 +94,6 @@ func New(c *nftables.Conn, table *nftables.Table, name string, keyType nftables.
 
 	return Set{
 		set: set,
-		mu:  &sync.Mutex{},
 	}, nil
 }
 
@@ -108,18 +102,14 @@ func New(c *nftables.Conn, table *nftables.Table, name string, keyType nftables.
 // First return value is true if the set was modified, false if there were no updates. The second
 // and third return values indicate the number of values added and removed from the set, respectively.
 func (s *Set) UpdateElements(c *nftables.Conn, newSetData []SetData) (bool, int, int, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	var modified bool
 
-	// If we haven't initialized CurrentSetData, don't need
-	// the update logic, can just add everything
-	if s.currentSetData == nil {
-		return true, len(newSetData), 0, s.ClearAndAddElements(c, newSetData)
+	currentSetData, err := s.GetSetElements(c)
+	if err != nil {
+		return false, 0, 0, err
 	}
 
-	addSetData, removeSetData := s.genSetDataDelta(newSetData)
+	addSetData, removeSetData := genSetDataDelta(currentSetData, newSetData)
 
 	// Deletes should always happen first, just in case an incoming setData
 	// value replaces a single port/ip with a range that includes that port/ip
@@ -134,10 +124,6 @@ func (s *Set) UpdateElements(c *nftables.Conn, newSetData []SetData) (bool, int,
 		if err = c.SetDeleteElements(s.set, removeElems); err != nil {
 			return false, 0, 0, fmt.Errorf("nftables delete set elements failed for %v: %v", s.set.Name, err)
 		}
-
-		for _, elem := range removeSetData {
-			delete(s.currentSetData, elem)
-		}
 	}
 
 	if len(addSetData) > 0 {
@@ -151,10 +137,6 @@ func (s *Set) UpdateElements(c *nftables.Conn, newSetData []SetData) (bool, int,
 		if err = c.SetAddElements(s.set, addElems); err != nil {
 			return false, 0, 0, fmt.Errorf("nftables add set elements failed for %v: %v", s.set.Name, err)
 		}
-
-		for _, elem := range addSetData {
-			s.currentSetData[elem] = struct{}{}
-		}
 	}
 
 	return modified, len(addSetData), len(removeSetData), nil
@@ -163,8 +145,6 @@ func (s *Set) UpdateElements(c *nftables.Conn, newSetData []SetData) (bool, int,
 // Remove all elements from the set and then add a list of elements
 func (s *Set) ClearAndAddElements(c *nftables.Conn, newSetData []SetData) error {
 	c.FlushSet(s.set)
-	// Clear/Initialize existing map
-	s.currentSetData = make(map[SetData]struct{})
 
 	newElems, err := generateElements(s.set.KeyType, newSetData)
 	if err != nil {
@@ -176,16 +156,31 @@ func (s *Set) ClearAndAddElements(c *nftables.Conn, newSetData []SetData) error 
 		return fmt.Errorf("nftables add set elements failed for %v: %v", s.set.Name, err)
 	}
 
-	for _, elem := range newSetData {
-		s.currentSetData[elem] = struct{}{}
-	}
-
 	return nil
 }
 
 // Get the nftables set associated with this Set
 func (s *Set) GetSet() *nftables.Set {
 	return s.set
+}
+
+// Get all elements associated with this Set
+func (s *Set) GetSetElements(c *nftables.Conn) ([]SetData, error) {
+	elements, err := c.GetSetElements(s.set)
+	if err != nil {
+		return nil, err
+	}
+
+	switch s.set.KeyType {
+	case nftables.TypeIPAddr:
+		fallthrough
+	case nftables.TypeIP6Addr:
+		return addrSetData(elements)
+	case nftables.TypeInetService:
+		return portSetData(elements)
+	default:
+		return nil, fmt.Errorf("unexpected set key type: %v", s.set.KeyType)
+	}
 }
 
 // Gets a set's SetData with associated counters
@@ -232,6 +227,27 @@ func countedPortSetData(elements []nftables.SetElement) ([]countedSetData, error
 	return setDataList, nil
 }
 
+func portSetData(elements []nftables.SetElement) ([]SetData, error) {
+	setDataList := []SetData{}
+
+	// set elements come in pairs, first the end of range, then start of range which contains counters
+	for i := 0; i < len(elements); i++ {
+		startElement, endElement, err := nextRangeElements(elements, &i)
+		if err != nil {
+			return nil, err
+		}
+
+		setData, err := PortBytesToSetData(startElement.Key, endElement.Key)
+		if err != nil {
+			return nil, err
+		}
+
+		setDataList = append(setDataList, setData)
+	}
+
+	return setDataList, nil
+}
+
 func nextRangeElements(elements []nftables.SetElement, i *int) (start nftables.SetElement, end nftables.SetElement, err error) {
 	if (*i + 1) >= (len(elements)) {
 		return nftables.SetElement{}, nftables.SetElement{}, fmt.Errorf("index out of bounds getting range elements")
@@ -271,6 +287,27 @@ func countedAddrSetData(elements []nftables.SetElement) ([]countedSetData, error
 			packets: int64(startElement.Counter.Packets),
 			setData: setData,
 		})
+	}
+
+	return setDataList, nil
+}
+
+func addrSetData(elements []nftables.SetElement) ([]SetData, error) {
+	setDataList := []SetData{}
+
+	// set elements come in pairs, first the end of range, then start of range which contains counters
+	for i := 0; i < len(elements); i++ {
+		startElement, endElement, err := nextRangeElements(elements, &i)
+		if err != nil {
+			return nil, err
+		}
+
+		setData, err := AddressBytesToSetData(startElement.Key, endElement.Key)
+		if err != nil {
+			return nil, err
+		}
+
+		setDataList = append(setDataList, setData)
 	}
 
 	return setDataList, nil
@@ -412,14 +449,15 @@ func validateSetDataPorts(setData SetData) error {
 // genSetDataDelta generates the "delta" between the incoming and the
 // existing values in a Set.
 // This shouldn't be called unless you have exclusive access to the Set
-func (s *Set) genSetDataDelta(incoming []SetData) (add []SetData, remove []SetData) {
+func genSetDataDelta(current []SetData, incoming []SetData) (add []SetData, remove []SetData) {
 	currentCopy := make(map[SetData]struct{})
-	for data := range s.currentSetData {
+
+	for _, data := range current {
 		currentCopy[data] = struct{}{}
 	}
 
 	for _, data := range incoming {
-		if _, exists := s.currentSetData[data]; !exists {
+		if _, exists := currentCopy[data]; !exists {
 			add = append(add, data)
 		} else {
 			// removing an element from the copy indicates
