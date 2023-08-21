@@ -158,6 +158,11 @@ func (s *ManagedSet) genTags(additional []string) []string {
 }
 
 func (s *ManagedSet) emitUsageCounters(setDataList []countedSetData) {
+	err := s.metrics.Count(m.Prefix("fwng-agent.set_count_diff"), int64(len(setDataList)-len(s.set.currentSetData)), s.genTags([]string{}), 1)
+	if err != nil {
+		s.logger.Warnf("error sending fwng-agent.set_count_diff metric: %v", err)
+	}
+
 	for _, d := range setDataList {
 		var tags []string
 		switch {
