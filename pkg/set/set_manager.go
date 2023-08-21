@@ -120,7 +120,7 @@ func (s *ManagedSet) Start(ctx context.Context) error {
 				}
 
 				if s.clearOnError {
-					s.logger.Warnf("clear on error for table/set %v/%v, next manager run starts from scratch")
+					s.logger.Warnf("clear on error for table/set %v/%v, next manager run starts from scratch", s.set.set.Table.Name, s.set.set.Name)
 					s.set.currentSetData = nil
 				}
 
