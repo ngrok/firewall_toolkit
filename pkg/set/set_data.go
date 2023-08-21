@@ -20,12 +20,8 @@ type SetData struct {
 	AddressRangeStart netip.Addr
 	AddressRangeEnd   netip.Addr
 	Prefix            netip.Prefix
-}
-
-type countedSetData struct {
-	setData SetData
-	packets int64
-	bytes   int64
+	packets           int64
+	bytes             int64
 }
 
 // Convert a string address to the SetData type

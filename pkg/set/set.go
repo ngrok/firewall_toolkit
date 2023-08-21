@@ -183,50 +183,6 @@ func (s *Set) GetSetElements(c *nftables.Conn) ([]SetData, error) {
 	}
 }
 
-// Gets a set's SetData with associated counters
-func (s *Set) getCountedSetData(c *nftables.Conn) ([]countedSetData, error) {
-	elements, err := c.GetSetElements(s.set)
-	if err != nil {
-		return nil, err
-	}
-
-	switch s.set.KeyType {
-	case nftables.TypeIPAddr:
-		fallthrough
-	case nftables.TypeIP6Addr:
-		return countedAddrSetData(elements)
-	case nftables.TypeInetService:
-		return countedPortSetData(elements)
-	default:
-		return nil, fmt.Errorf("unexpected set key type: %v", s.set.KeyType)
-	}
-}
-
-func countedPortSetData(elements []nftables.SetElement) ([]countedSetData, error) {
-	setDataList := []countedSetData{}
-
-	// set elements come in pairs, first the end of range, then start of range which contains counters
-	for i := 0; i < len(elements); i++ {
-		startElement, endElement, err := nextRangeElements(elements, &i)
-		if err != nil {
-			return nil, err
-		}
-
-		setData, err := PortBytesToSetData(startElement.Key, endElement.Key)
-		if err != nil {
-			return nil, err
-		}
-
-		setDataList = append(setDataList, countedSetData{
-			bytes:   int64(startElement.Counter.Bytes),
-			packets: int64(startElement.Counter.Packets),
-			setData: setData,
-		})
-	}
-
-	return setDataList, nil
-}
-
 func portSetData(elements []nftables.SetElement) ([]SetData, error) {
 	setDataList := []SetData{}
 
@@ -241,6 +197,33 @@ func portSetData(elements []nftables.SetElement) ([]SetData, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		setData.bytes = int64(startElement.Counter.Bytes)
+		setData.packets = int64(startElement.Counter.Packets)
+
+		setDataList = append(setDataList, setData)
+	}
+
+	return setDataList, nil
+}
+
+func addrSetData(elements []nftables.SetElement) ([]SetData, error) {
+	setDataList := []SetData{}
+
+	// set elements come in pairs, first the end of range, then start of range which contains counters
+	for i := 0; i < len(elements); i++ {
+		startElement, endElement, err := nextRangeElements(elements, &i)
+		if err != nil {
+			return nil, err
+		}
+
+		setData, err := AddressBytesToSetData(startElement.Key, endElement.Key)
+		if err != nil {
+			return nil, err
+		}
+
+		setData.bytes = int64(startElement.Counter.Bytes)
+		setData.packets = int64(startElement.Counter.Packets)
 
 		setDataList = append(setDataList, setData)
 	}
@@ -265,52 +248,6 @@ func nextRangeElements(elements []nftables.SetElement, i *int) (start nftables.S
 	}
 
 	return startElement, endElement, nil
-}
-
-func countedAddrSetData(elements []nftables.SetElement) ([]countedSetData, error) {
-	setDataList := []countedSetData{}
-
-	// set elements come in pairs, first the end of range, then start of range which contains counters
-	for i := 0; i < len(elements); i++ {
-		startElement, endElement, err := nextRangeElements(elements, &i)
-		if err != nil {
-			return nil, err
-		}
-
-		setData, err := AddressBytesToSetData(startElement.Key, endElement.Key)
-		if err != nil {
-			return nil, err
-		}
-
-		setDataList = append(setDataList, countedSetData{
-			bytes:   int64(startElement.Counter.Bytes),
-			packets: int64(startElement.Counter.Packets),
-			setData: setData,
-		})
-	}
-
-	return setDataList, nil
-}
-
-func addrSetData(elements []nftables.SetElement) ([]SetData, error) {
-	setDataList := []SetData{}
-
-	// set elements come in pairs, first the end of range, then start of range which contains counters
-	for i := 0; i < len(elements); i++ {
-		startElement, endElement, err := nextRangeElements(elements, &i)
-		if err != nil {
-			return nil, err
-		}
-
-		setData, err := AddressBytesToSetData(startElement.Key, endElement.Key)
-		if err != nil {
-			return nil, err
-		}
-
-		setDataList = append(setDataList, setData)
-	}
-
-	return setDataList, nil
 }
 
 func generateElements(keyType nftables.SetDatatype, list []SetData) ([]nftables.SetElement, error) {

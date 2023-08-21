@@ -572,7 +572,7 @@ func TestBadIntervalCountedAddrSetData(t *testing.T) {
 		{Key: []byte{198, 51, 100, 1}, IntervalEnd: true},
 	}
 
-	res, err := countedAddrSetData(elements)
+	res, err := addrSetData(elements)
 
 	assert.Error(t, err)
 	assert.Nil(t, res)
@@ -586,12 +586,12 @@ func TestGoodCountedAddrSetData(t *testing.T) {
 		{Key: []byte{203, 0, 113, 100}, Counter: &expr.Counter{Bytes: 200, Packets: 2}},
 	}
 
-	res, err := countedAddrSetData(elements)
+	res, err := addrSetData(elements)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(res))
-	assert.Equal(t, countedSetData{bytes: 100, packets: 1, setData: SetData{Address: netip.MustParseAddr("198.51.100.1")}}, res[0])
-	assert.Equal(t, countedSetData{bytes: 200, packets: 2, setData: SetData{Prefix: netip.MustParsePrefix("203.0.113.100/30")}}, res[1])
+	assert.Equal(t, SetData{bytes: 100, packets: 1, Address: netip.MustParseAddr("198.51.100.1")}, res[0])
+	assert.Equal(t, SetData{bytes: 200, packets: 2, Prefix: netip.MustParsePrefix("203.0.113.100/30")}, res[1])
 }
 
 func TestBadIntervalCountedPortSetData(t *testing.T) {
@@ -600,7 +600,7 @@ func TestBadIntervalCountedPortSetData(t *testing.T) {
 		{Key: []byte{3, 232}, IntervalEnd: true},
 	}
 
-	res, err := countedPortSetData(elements)
+	res, err := portSetData(elements)
 
 	assert.Error(t, err)
 	assert.Nil(t, res)
@@ -612,9 +612,9 @@ func TestGoodCountedPortSetData(t *testing.T) {
 		{Key: []byte{3, 232}, Counter: &expr.Counter{Bytes: 100, Packets: 1}},
 	}
 
-	res, err := countedPortSetData(elements)
+	res, err := portSetData(elements)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(res))
-	assert.Equal(t, countedSetData{bytes: 100, packets: 1, setData: SetData{PortRangeStart: 1000, PortRangeEnd: 1001}}, res[0])
+	assert.Equal(t, SetData{bytes: 100, packets: 1, PortRangeStart: 1000, PortRangeEnd: 1001}, res[0])
 }
