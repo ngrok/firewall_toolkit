@@ -116,6 +116,7 @@ func (s *Set) UpdateElements(c *nftables.Conn, newSetData []SetData) (bool, int,
 	// If we haven't initialized CurrentSetData, don't need
 	// the update logic, can just add everything
 	if s.currentSetData == nil {
+		s.mu.Unlock()
 		return true, len(newSetData), 0, s.ClearAndAddElements(c, newSetData)
 	}
 
@@ -162,6 +163,9 @@ func (s *Set) UpdateElements(c *nftables.Conn, newSetData []SetData) (bool, int,
 
 // Remove all elements from the set and then add a list of elements
 func (s *Set) ClearAndAddElements(c *nftables.Conn, newSetData []SetData) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	c.FlushSet(s.set)
 	// Clear/Initialize existing map
 	s.currentSetData = make(map[SetData]struct{})
