@@ -28,11 +28,12 @@ type ManagedSet struct {
 	interval      time.Duration
 	logger        logger.Logger
 	metrics       m.Metrics
+	clearOnError  bool
 }
 
 // Create a set manager.
 // Passing a nil metrics object is safe and will result in the "NoOp" client being used.
-func ManagerInit(set Set, f SetUpdateFunc, interval time.Duration, logger logger.Logger, metrics m.Metrics) (ManagedSet, error) {
+func ManagerInit(set Set, f SetUpdateFunc, interval time.Duration, logger logger.Logger, metrics m.Metrics, clearOnError bool) (ManagedSet, error) {
 	c, err := nftables.New()
 	if err != nil {
 		return ManagedSet{}, err
@@ -49,6 +50,7 @@ func ManagerInit(set Set, f SetUpdateFunc, interval time.Duration, logger logger
 		interval:      interval,
 		logger:        logger,
 		metrics:       metrics,
+		clearOnError:  clearOnError,
 	}, nil
 }
 
@@ -97,6 +99,11 @@ func (s *ManagedSet) Start(ctx context.Context) error {
 				if err != nil {
 					s.logger.Warnf("error sending manager_loop_update_data metric: %v", err)
 				}
+
+				if s.clearOnError {
+					s.set.currentSetData = nil
+				}
+
 				continue
 			}
 			err = s.metrics.Count(m.Prefix("manager_loop_update_data"), 1, s.genTags([]string{"success:true"}), 1)
@@ -115,6 +122,11 @@ func (s *ManagedSet) Start(ctx context.Context) error {
 				if err != nil {
 					s.logger.Warnf("error sending manager_loop_flush metric: %v", err)
 				}
+
+				if s.clearOnError {
+					s.set.currentSetData = nil
+				}
+
 				continue
 			}
 			err = s.metrics.Count(m.Prefix("manager_loop_update_data_added"), int64(added), s.genTags([]string{}), 1)

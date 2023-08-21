@@ -173,6 +173,7 @@ func main() {
 			RefreshInterval,
 			logger.Default,
 			nil,
+			true,
 		)
 
 		if err != nil {
@@ -185,6 +186,7 @@ func main() {
 			RefreshInterval,
 			logger.Default,
 			nil,
+			true,
 		)
 
 		if err != nil {
@@ -197,6 +199,7 @@ func main() {
 			RefreshInterval,
 			logger.Default,
 			nil,
+			true,
 		)
 
 		if err != nil {
