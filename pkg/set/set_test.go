@@ -189,7 +189,7 @@ func TestClearAndAddElements(t *testing.T) {
 		Interval: true,
 		Counter:  true,
 	}
-	set := Set{set: nfSet, &sync.Mutex{}}
+	set := Set{set: nfSet, mu: &sync.Mutex{}}
 
 	setData, err := AddressStringToSetData("192.0.2.1")
 	assert.Nil(t, err)
@@ -222,7 +222,7 @@ func TestUpdateSetBadType(t *testing.T) {
 		Interval: true,
 		Counter:  true,
 	}
-	set := Set{set: nfSet, &sync.Mutex{}}
+	set := Set{set: nfSet, mu: &sync.Mutex{}}
 
 	setData, err := AddressStringToSetData("192.0.2.1")
 	assert.Nil(t, err)
