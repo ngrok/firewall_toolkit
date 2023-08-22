@@ -102,21 +102,24 @@ func New(c *nftables.Conn, table *nftables.Table, name string, keyType nftables.
 // First return value is true if the set was modified, false if there were no updates. The second
 // and third return values indicate the number of values added and removed from the set, respectively.
 func (s *Set) UpdateElements(c *nftables.Conn, newSetData []SetData) (bool, int, int, error) {
-	var modified bool
-
 	currentSetData, err := s.Elements(c)
 	if err != nil {
 		return false, 0, 0, err
 	}
 
 	addSetData, removeSetData := genSetDataDelta(currentSetData, newSetData)
+	return s.update(c, addSetData, removeSetData)
+}
+
+func (s *Set) update(c *nftables.Conn, add []SetData, remove []SetData) (bool, int, int, error) {
+	var modified bool
 
 	// Deletes should always happen first, just in case an incoming setData
 	// value replaces a single port/ip with a range that includes that port/ip
-	if len(removeSetData) > 0 {
+	if len(remove) > 0 {
 		modified = true
 
-		removeElems, err := generateElements(s.set.KeyType, removeSetData)
+		removeElems, err := generateElements(s.set.KeyType, remove)
 		if err != nil {
 			return false, 0, 0, fmt.Errorf("generating set elements failed for %v: %v", s.set.Name, err)
 		}
@@ -126,10 +129,10 @@ func (s *Set) UpdateElements(c *nftables.Conn, newSetData []SetData) (bool, int,
 		}
 	}
 
-	if len(addSetData) > 0 {
+	if len(add) > 0 {
 		modified = true
 
-		addElems, err := generateElements(s.set.KeyType, addSetData)
+		addElems, err := generateElements(s.set.KeyType, add)
 		if err != nil {
 			return false, 0, 0, fmt.Errorf("generating set elements failed for %v: %v", s.set.Name, err)
 		}
@@ -139,7 +142,7 @@ func (s *Set) UpdateElements(c *nftables.Conn, newSetData []SetData) (bool, int,
 		}
 	}
 
-	return modified, len(addSetData), len(removeSetData), nil
+	return modified, len(add), len(remove), nil
 }
 
 // Remove all elements from the set and then add a list of elements
