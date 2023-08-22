@@ -198,8 +198,8 @@ func portSetData(elements []nftables.SetElement) ([]SetData, error) {
 			return nil, err
 		}
 
-		setData.bytes = int64(startElement.Counter.Bytes)
-		setData.packets = int64(startElement.Counter.Packets)
+		setData.bytes = startElement.Counter.Bytes
+		setData.packets = startElement.Counter.Packets
 
 		setDataList = append(setDataList, setData)
 	}
@@ -222,8 +222,8 @@ func addrSetData(elements []nftables.SetElement) ([]SetData, error) {
 			return nil, err
 		}
 
-		setData.bytes = int64(startElement.Counter.Bytes)
-		setData.packets = int64(startElement.Counter.Packets)
+		setData.bytes = startElement.Counter.Bytes
+		setData.packets = startElement.Counter.Packets
 
 		setDataList = append(setDataList, setData)
 	}

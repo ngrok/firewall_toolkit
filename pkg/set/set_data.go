@@ -20,8 +20,8 @@ type SetData struct {
 	AddressRangeStart netip.Addr
 	AddressRangeEnd   netip.Addr
 	Prefix            netip.Prefix
-	packets           int64
-	bytes             int64
+	packets           uint64
+	bytes             uint64
 }
 
 // Convert a string address to the SetData type
@@ -310,4 +310,9 @@ func PortBytesToSetData(start []byte, end []byte) (SetData, error) {
 	}
 
 	return SetData{PortRangeStart: startPort, PortRangeEnd: endPort}, nil
+}
+
+// Returns counters contained in SetData if they exist
+func (s SetData) Counters() (bytes *uint64, packets *uint64) {
+	return &s.bytes, &s.packets
 }
