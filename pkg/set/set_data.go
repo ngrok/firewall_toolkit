@@ -20,8 +20,13 @@ type SetData struct {
 	AddressRangeStart netip.Addr
 	AddressRangeEnd   netip.Addr
 	Prefix            netip.Prefix
-	packets           uint64
-	bytes             uint64
+	counter           counter
+}
+
+type counter struct {
+	packets uint64
+	bytes   uint64
+	exists  bool
 }
 
 // Convert a string address to the SetData type
@@ -313,6 +318,10 @@ func PortBytesToSetData(start []byte, end []byte) (SetData, error) {
 }
 
 // Returns counters contained in SetData if they exist
-func (s SetData) Counters() (*uint64, *uint64) {
-	return &s.bytes, &s.packets
+func (s SetData) Counters() (*uint64, *uint64, error) {
+	if s.counter.exists {
+		return &s.counter.bytes, &s.counter.packets, nil
+	}
+
+	return nil, nil, fmt.Errorf("no counter expression found for set %v", s)
 }

@@ -201,8 +201,13 @@ func portSetData(elements []nftables.SetElement) ([]SetData, error) {
 			return nil, err
 		}
 
-		setData.bytes = startElement.Counter.Bytes
-		setData.packets = startElement.Counter.Packets
+		// this is so .Counter has the same API across sets and rules
+		// nil means no counter expression, 0 is zero
+		if startElement.Counter != nil {
+			setData.counter.bytes = startElement.Counter.Bytes
+			setData.counter.packets = startElement.Counter.Packets
+			setData.counter.exists = true
+		}
 
 		setDataList = append(setDataList, setData)
 	}
@@ -225,8 +230,13 @@ func addrSetData(elements []nftables.SetElement) ([]SetData, error) {
 			return nil, err
 		}
 
-		setData.bytes = startElement.Counter.Bytes
-		setData.packets = startElement.Counter.Packets
+		// this is so .Counter has the same API across sets and rules
+		// nil means no counter expression, 0 is zero
+		if startElement.Counter != nil {
+			setData.counter.bytes = startElement.Counter.Bytes
+			setData.counter.packets = startElement.Counter.Packets
+			setData.counter.exists = true
+		}
 
 		setDataList = append(setDataList, setData)
 	}

@@ -167,11 +167,11 @@ func (s *ManagedSet) emitUsageCounters(setDataList []SetData) {
 			continue
 		}
 
-		err := s.metrics.Count(m.Prefix("fwng-agent.bytes"), int64(d.bytes), s.genTags(tags), 1)
+		err := s.metrics.Count(m.Prefix("fwng-agent.bytes"), int64(d.counter.bytes), s.genTags(tags), 1)
 		if err != nil {
 			s.logger.Warnf("error sending fwng-agent.bytes metric: %v", err)
 		}
-		err = s.metrics.Count(m.Prefix("fwng-agent.packets"), int64(d.packets), s.genTags(tags), 1)
+		err = s.metrics.Count(m.Prefix("fwng-agent.packets"), int64(d.counter.packets), s.genTags(tags), 1)
 		if err != nil {
 			s.logger.Warnf("error sending fwng-agent.packets metric: %v", err)
 		}

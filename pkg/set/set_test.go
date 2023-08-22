@@ -624,8 +624,24 @@ func TestGoodCountedAddrSetData(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(res))
-	assert.Equal(t, SetData{bytes: 100, packets: 1, Address: netip.MustParseAddr("198.51.100.1")}, res[0])
-	assert.Equal(t, SetData{bytes: 200, packets: 2, Prefix: netip.MustParsePrefix("203.0.113.100/30")}, res[1])
+	assert.Equal(t, SetData{counter: counter{bytes: 100, packets: 1, exists: true}, Address: netip.MustParseAddr("198.51.100.1")}, res[0])
+	assert.Equal(t, SetData{counter: counter{bytes: 200, packets: 2, exists: true}, Prefix: netip.MustParsePrefix("203.0.113.100/30")}, res[1])
+}
+
+func TestNoCounterAddrSetData(t *testing.T) {
+	elements := []nftables.SetElement{
+		{Key: []byte{198, 51, 100, 2}, IntervalEnd: true},
+		{Key: []byte{198, 51, 100, 1}},
+		{Key: []byte{203, 0, 113, 104}, IntervalEnd: true},
+		{Key: []byte{203, 0, 113, 100}},
+	}
+
+	res, err := addrSetData(elements)
+
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(res))
+	assert.Equal(t, SetData{Address: netip.MustParseAddr("198.51.100.1")}, res[0])
+	assert.Equal(t, SetData{Prefix: netip.MustParsePrefix("203.0.113.100/30")}, res[1])
 }
 
 func TestBadIntervalCountedPortSetData(t *testing.T) {
@@ -650,5 +666,19 @@ func TestGoodCountedPortSetData(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(res))
-	assert.Equal(t, SetData{bytes: 100, packets: 1, PortRangeStart: 1000, PortRangeEnd: 1001}, res[0])
+	assert.Equal(t, SetData{counter: counter{bytes: 100, packets: 1, exists: true}, PortRangeStart: 1000, PortRangeEnd: 1001}, res[0])
+}
+
+func TestNoCounterPortSetData(t *testing.T) {
+	elements := []nftables.SetElement{
+		{Key: []byte{3, 234}, IntervalEnd: true},
+		{Key: []byte{3, 232}},
+	}
+
+	res, err := portSetData(elements)
+
+	assert.False(t, res[0].counter.exists)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(res))
+	assert.Equal(t, SetData{PortRangeStart: 1000, PortRangeEnd: 1001}, res[0])
 }
