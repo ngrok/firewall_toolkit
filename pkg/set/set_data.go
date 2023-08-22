@@ -323,5 +323,5 @@ func (s SetData) Counters() (*uint64, *uint64, error) {
 		return &s.counter.bytes, &s.counter.packets, nil
 	}
 
-	return nil, nil, fmt.Errorf("no counter expression found for set %v", s)
+	return nil, nil, fmt.Errorf("no counter expression found for set data %v", s)
 }
