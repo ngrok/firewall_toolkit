@@ -313,6 +313,6 @@ func PortBytesToSetData(start []byte, end []byte) (SetData, error) {
 }
 
 // Returns counters contained in SetData if they exist
-func (s SetData) Counters() (bytes *uint64, packets *uint64) {
+func (s SetData) Counters() (*uint64, *uint64) {
 	return &s.bytes, &s.packets
 }

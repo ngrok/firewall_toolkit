@@ -543,7 +543,7 @@ func TestGetSet(t *testing.T) {
 
 	set := Set{set: nfSet}
 
-	assert.Equal(t, nfSet, set.GetSet())
+	assert.Equal(t, nfSet, set.Set())
 }
 
 func TestManagerGetSet(t *testing.T) {
@@ -561,9 +561,9 @@ func TestManagerGetSet(t *testing.T) {
 		set: set,
 	}
 
-	mSet := mS.GetSet()
+	mSet := mS.Set()
 
-	assert.Equal(t, nfSet, mSet.GetSet())
+	assert.Equal(t, nfSet, mSet.Set())
 }
 
 func TestBadIntervalCountedAddrSetData(t *testing.T) {

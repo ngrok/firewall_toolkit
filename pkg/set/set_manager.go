@@ -69,7 +69,7 @@ func (s *ManagedSet) Start(ctx context.Context) error {
 			s.logger.Infof("got %s, stopping set update loop for table/set %v/%v", sig, s.set.set.Table.Name, s.set.set.Name)
 			return nil
 		case <-ticker.C:
-			setElements, err := s.set.GetSetElements(s.conn)
+			setElements, err := s.set.Elements(s.conn)
 			if err != nil {
 				s.logger.Warnf("error getting set data for sending usage count metric: %v", err)
 			} else {
@@ -134,7 +134,7 @@ func (s *ManagedSet) Start(ctx context.Context) error {
 }
 
 // Get the set this manager is operating on
-func (s *ManagedSet) GetSet() Set {
+func (s *ManagedSet) Set() Set {
 	return s.set
 }
 

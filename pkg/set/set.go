@@ -104,7 +104,7 @@ func New(c *nftables.Conn, table *nftables.Table, name string, keyType nftables.
 func (s *Set) UpdateElements(c *nftables.Conn, newSetData []SetData) (bool, int, int, error) {
 	var modified bool
 
-	currentSetData, err := s.GetSetElements(c)
+	currentSetData, err := s.Elements(c)
 	if err != nil {
 		return false, 0, 0, err
 	}
@@ -160,12 +160,12 @@ func (s *Set) ClearAndAddElements(c *nftables.Conn, newSetData []SetData) error 
 }
 
 // Get the nftables set associated with this Set
-func (s *Set) GetSet() *nftables.Set {
+func (s *Set) Set() *nftables.Set {
 	return s.set
 }
 
 // Get all elements associated with this Set
-func (s *Set) GetSetElements(c *nftables.Conn) ([]SetData, error) {
+func (s *Set) Elements(c *nftables.Conn) ([]SetData, error) {
 	elements, err := c.GetSetElements(s.set)
 	if err != nil {
 		return nil, err
