@@ -24,12 +24,12 @@ func NewRuleData(id []byte, exprs []expr.Any) RuleData {
 	}
 }
 
-func (d RuleData) counters() (bytes *int64, packets *int64, error error) {
+func (d RuleData) Counters() (*uint64, *uint64, error) {
 	for _, ex := range d.Expressions {
 		switch v := ex.(type) {
 		case *expr.Counter:
-			bytes := int64(v.Bytes)
-			packets := int64(v.Packets)
+			bytes := v.Bytes
+			packets := v.Packets
 			return &bytes, &packets, nil
 		}
 	}

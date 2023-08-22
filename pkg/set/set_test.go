@@ -5,7 +5,6 @@ package set
 import (
 	"bytes"
 	"net/netip"
-	"sync"
 	"testing"
 
 	"github.com/google/nftables"
@@ -34,7 +33,7 @@ func TestNewSetBadType(t *testing.T) {
 	res, err := New(c, table, "testset", nftables.TypeARPHRD)
 	assert.Error(t, err)
 	assert.Equal(t, Set{}, res)
-	c.Flush()
+	assert.Nil(t, c.Flush())
 }
 
 func TestNewV4Set(t *testing.T) {
@@ -76,7 +75,7 @@ func TestNewV4Set(t *testing.T) {
 	assert.Equal(t, "testset", res.set.Name)
 	assert.Equal(t, "testtable", res.set.Table.Name)
 	assert.Equal(t, nftables.TypeIPAddr, res.set.KeyType)
-	c.Flush()
+	assert.Nil(t, c.Flush())
 }
 
 func TestNewV6Set(t *testing.T) {
@@ -117,7 +116,7 @@ func TestNewV6Set(t *testing.T) {
 	assert.Equal(t, "testset", res.set.Name)
 	assert.Equal(t, "testtable", res.set.Table.Name)
 	assert.Equal(t, nftables.TypeIP6Addr, res.set.KeyType)
-	c.Flush()
+	assert.Nil(t, c.Flush())
 }
 
 func TestNewPortSet(t *testing.T) {
@@ -158,7 +157,7 @@ func TestNewPortSet(t *testing.T) {
 	assert.Equal(t, "testset", res.set.Name)
 	assert.Equal(t, "testtable", res.set.Table.Name)
 	assert.Equal(t, nftables.TypeInetService, res.set.KeyType)
-	c.Flush()
+	assert.Nil(t, c.Flush())
 }
 
 func TestClearAndAddElements(t *testing.T) {
@@ -195,7 +194,7 @@ func TestClearAndAddElements(t *testing.T) {
 	assert.Nil(t, err)
 	err = set.ClearAndAddElements(c, []SetData{setData})
 	assert.Nil(t, err)
-	c.Flush()
+	assert.Nil(t, c.Flush())
 }
 
 func TestUpdateSetBadType(t *testing.T) {
@@ -228,7 +227,7 @@ func TestUpdateSetBadType(t *testing.T) {
 	assert.Nil(t, err)
 	err = set.ClearAndAddElements(c, []SetData{setData})
 	assert.Error(t, err)
-	c.Flush()
+	assert.Nil(t, c.Flush())
 }
 
 func testDialWithWant(t *testing.T, want [][]byte) *nftables.Conn {
@@ -471,49 +470,49 @@ func processGoodSetElements(t *testing.T, keyType nftables.SetDatatype, addressS
 
 func TestRuleDataDelta(t *testing.T) {
 	tests := []struct {
-		current    map[SetData]struct{}
+		current    []SetData
 		incoming   []SetData
 		wantAdd    []SetData
 		wantRemove []SetData
 	}{
 		{
-			map[SetData]struct{}{{Port: 8000}: {}},
+			[]SetData{{Port: 8000}},
 			[]SetData{{Port: 8000}, {Port: 8001}},
 			[]SetData{{Port: 8001}},
 			[]SetData{},
 		},
 		{
-			map[SetData]struct{}{{Port: 8000}: {}},
+			[]SetData{{Port: 8000}},
 			[]SetData{{Port: 8001}, {Port: 8002}},
 			[]SetData{{Port: 8001}, {Port: 8002}},
 			[]SetData{{Port: 8000}},
 		},
 		{
-			map[SetData]struct{}{{PortRangeStart: 8000, PortRangeEnd: 9000}: {}},
+			[]SetData{{PortRangeStart: 8000, PortRangeEnd: 9000}},
 			[]SetData{{Port: 8001}, {Port: 8002}},
 			[]SetData{{Port: 8001}, {Port: 8002}},
 			[]SetData{{PortRangeStart: 8000, PortRangeEnd: 9000}},
 		},
 		{
-			map[SetData]struct{}{{Address: netip.MustParseAddr("192.0.2.0")}: {}},
+			[]SetData{{Address: netip.MustParseAddr("192.0.2.0")}},
 			[]SetData{{Address: netip.MustParseAddr("192.0.2.0")}, {Address: netip.MustParseAddr("192.0.2.1")}},
 			[]SetData{{Address: netip.MustParseAddr("192.0.2.1")}},
 			[]SetData{},
 		},
 		{
-			map[SetData]struct{}{},
+			[]SetData{},
 			[]SetData{{Address: netip.MustParseAddr("192.0.2.0")}, {Address: netip.MustParseAddr("192.0.2.1")}},
 			[]SetData{{Address: netip.MustParseAddr("192.0.2.0")}, {Address: netip.MustParseAddr("192.0.2.1")}},
 			[]SetData{},
 		},
 		{
-			map[SetData]struct{}{{AddressRangeStart: netip.MustParseAddr("192.0.2.0"), AddressRangeEnd: netip.MustParseAddr("192.0.2.255")}: {}},
+			[]SetData{{AddressRangeStart: netip.MustParseAddr("192.0.2.0"), AddressRangeEnd: netip.MustParseAddr("192.0.2.255")}},
 			[]SetData{{Address: netip.MustParseAddr("192.0.2.5")}, {Address: netip.MustParseAddr("192.0.2.6")}},
 			[]SetData{{Address: netip.MustParseAddr("192.0.2.6")}, {Address: netip.MustParseAddr("192.0.2.5")}},
 			[]SetData{{AddressRangeStart: netip.MustParseAddr("192.0.2.0"), AddressRangeEnd: netip.MustParseAddr("192.0.2.255")}},
 		},
 		{
-			map[SetData]struct{}{{Prefix: netip.MustParsePrefix("192.0.2.0/16")}: {}},
+			[]SetData{{Prefix: netip.MustParsePrefix("192.0.2.0/16")}},
 			[]SetData{{Prefix: netip.MustParsePrefix("192.0.2.0/24")}, {Prefix: netip.MustParsePrefix("192.168.1.0/24")}},
 			[]SetData{{Prefix: netip.MustParsePrefix("192.0.2.0/24")}, {Prefix: netip.MustParsePrefix("192.168.1.0/24")}},
 			[]SetData{{Prefix: netip.MustParsePrefix("192.0.2.0/16")}},
@@ -521,8 +520,7 @@ func TestRuleDataDelta(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		set := Set{currentSetData: test.current}
-		add, remove := set.genSetDataDelta(test.incoming)
+		add, remove := genSetDataDelta(test.current, test.incoming)
 
 		assert.ElementsMatch(t, add, test.wantAdd)
 		assert.ElementsMatch(t, remove, test.wantRemove)
@@ -535,11 +533,9 @@ func TestUpdateElements(t *testing.T) {
 		// batch begin
 		{0x0, 0x0, 0x0, 0xa},
 		// remove elements
-		// "0xc0, 0x0, 0x2, 0x0" == "192.0.2.0"
-		{0x1, 0x0, 0x0, 0x0, 0xc, 0x0, 0x2, 0x0, 0x74, 0x65, 0x73, 0x74, 0x73, 0x65, 0x74, 0x0, 0x8, 0x0, 0x4, 0x0, 0x0, 0x0, 0x0, 0x0, 0xe, 0x0, 0x1, 0x0, 0x74, 0x65, 0x73, 0x74, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x0, 0x0, 0x0, 0x2c, 0x0, 0x3, 0x80, 0x10, 0x0, 0x1, 0x80, 0xc, 0x0, 0x1, 0x80, 0x8, 0x0, 0x1, 0x0, 0xc0, 0x0, 0x2, 0x0, 0x18, 0x0, 0x2, 0x80, 0x8, 0x0, 0x3, 0x80, 0x0, 0x0, 0x0, 0x1, 0xc, 0x0, 0x1, 0x80, 0x8, 0x0, 0x1, 0x0, 0xc0, 0x0, 0x2, 0x1},
-		// add elements
-		// "0xc0, 0x0, 0x2, 0x1" == "192.0.2.1"
 		{0x1, 0x0, 0x0, 0x0, 0xc, 0x0, 0x2, 0x0, 0x74, 0x65, 0x73, 0x74, 0x73, 0x65, 0x74, 0x0, 0x8, 0x0, 0x4, 0x0, 0x0, 0x0, 0x0, 0x0, 0xe, 0x0, 0x1, 0x0, 0x74, 0x65, 0x73, 0x74, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x0, 0x0, 0x0, 0x2c, 0x0, 0x3, 0x80, 0x10, 0x0, 0x1, 0x80, 0xc, 0x0, 0x1, 0x80, 0x8, 0x0, 0x1, 0x0, 0xc0, 0x0, 0x2, 0x1, 0x18, 0x0, 0x2, 0x80, 0x8, 0x0, 0x3, 0x80, 0x0, 0x0, 0x0, 0x1, 0xc, 0x0, 0x1, 0x80, 0x8, 0x0, 0x1, 0x0, 0xc0, 0x0, 0x2, 0x2},
+		// add elements
+		{0x1, 0x0, 0x0, 0x0, 0xc, 0x0, 0x2, 0x0, 0x74, 0x65, 0x73, 0x74, 0x73, 0x65, 0x74, 0x0, 0x8, 0x0, 0x4, 0x0, 0x0, 0x0, 0x0, 0x0, 0xe, 0x0, 0x1, 0x0, 0x74, 0x65, 0x73, 0x74, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x0, 0x0, 0x0, 0x2c, 0x0, 0x3, 0x80, 0x10, 0x0, 0x1, 0x80, 0xc, 0x0, 0x1, 0x80, 0x8, 0x0, 0x1, 0x0, 0xc0, 0x0, 0x2, 0x0, 0x18, 0x0, 0x2, 0x80, 0x8, 0x0, 0x3, 0x80, 0x0, 0x0, 0x0, 0x1, 0xc, 0x0, 0x1, 0x80, 0x8, 0x0, 0x1, 0x0, 0xc0, 0x0, 0x2, 0x1},
 		// batch end
 		{0x0, 0x0, 0x0, 0xa},
 	}
@@ -557,17 +553,17 @@ func TestUpdateElements(t *testing.T) {
 		Interval: true,
 		Counter:  true,
 	}
-	oldSetData, _ := AddressStringToSetData("192.0.2.0")
-	set := Set{set: nfSet, mu: &sync.Mutex{}, currentSetData: map[SetData]struct{}{oldSetData: {}}}
+	add, _ := AddressStringToSetData("192.0.2.0")
+	set := Set{set: nfSet}
 
-	setData, err := AddressStringToSetData("192.0.2.1")
+	remove, err := AddressStringToSetData("192.0.2.1")
 	assert.Nil(t, err)
-	modified, added, removed, err := set.UpdateElements(c, []SetData{setData})
+	modified, added, removed, err := set.update(c, []SetData{add}, []SetData{remove})
 	assert.Equal(t, added, 1)
 	assert.Equal(t, removed, 1)
 	assert.True(t, modified)
 	assert.Nil(t, err)
-	c.Flush()
+	assert.Nil(t, c.Flush())
 }
 
 func TestGetSet(t *testing.T) {
@@ -581,7 +577,7 @@ func TestGetSet(t *testing.T) {
 
 	set := Set{set: nfSet}
 
-	assert.Equal(t, nfSet, set.GetSet())
+	assert.Equal(t, nfSet, set.Set())
 }
 
 func TestManagerGetSet(t *testing.T) {
@@ -599,9 +595,9 @@ func TestManagerGetSet(t *testing.T) {
 		set: set,
 	}
 
-	mSet := mS.GetSet()
+	mSet := mS.Set()
 
-	assert.Equal(t, nfSet, mSet.GetSet())
+	assert.Equal(t, nfSet, mSet.Set())
 }
 
 func TestBadIntervalCountedAddrSetData(t *testing.T) {
@@ -610,7 +606,7 @@ func TestBadIntervalCountedAddrSetData(t *testing.T) {
 		{Key: []byte{198, 51, 100, 1}, IntervalEnd: true},
 	}
 
-	res, err := countedAddrSetData(elements)
+	res, err := addrSetData(elements)
 
 	assert.Error(t, err)
 	assert.Nil(t, res)
@@ -624,12 +620,28 @@ func TestGoodCountedAddrSetData(t *testing.T) {
 		{Key: []byte{203, 0, 113, 100}, Counter: &expr.Counter{Bytes: 200, Packets: 2}},
 	}
 
-	res, err := countedAddrSetData(elements)
+	res, err := addrSetData(elements)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(res))
-	assert.Equal(t, countedSetData{bytes: 100, packets: 1, setData: SetData{Address: netip.MustParseAddr("198.51.100.1")}}, res[0])
-	assert.Equal(t, countedSetData{bytes: 200, packets: 2, setData: SetData{Prefix: netip.MustParsePrefix("203.0.113.100/30")}}, res[1])
+	assert.Equal(t, SetData{counter: counter{bytes: 100, packets: 1, exists: true}, Address: netip.MustParseAddr("198.51.100.1")}, res[0])
+	assert.Equal(t, SetData{counter: counter{bytes: 200, packets: 2, exists: true}, Prefix: netip.MustParsePrefix("203.0.113.100/30")}, res[1])
+}
+
+func TestNoCounterAddrSetData(t *testing.T) {
+	elements := []nftables.SetElement{
+		{Key: []byte{198, 51, 100, 2}, IntervalEnd: true},
+		{Key: []byte{198, 51, 100, 1}},
+		{Key: []byte{203, 0, 113, 104}, IntervalEnd: true},
+		{Key: []byte{203, 0, 113, 100}},
+	}
+
+	res, err := addrSetData(elements)
+
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(res))
+	assert.Equal(t, SetData{Address: netip.MustParseAddr("198.51.100.1")}, res[0])
+	assert.Equal(t, SetData{Prefix: netip.MustParsePrefix("203.0.113.100/30")}, res[1])
 }
 
 func TestBadIntervalCountedPortSetData(t *testing.T) {
@@ -638,7 +650,7 @@ func TestBadIntervalCountedPortSetData(t *testing.T) {
 		{Key: []byte{3, 232}, IntervalEnd: true},
 	}
 
-	res, err := countedPortSetData(elements)
+	res, err := portSetData(elements)
 
 	assert.Error(t, err)
 	assert.Nil(t, res)
@@ -650,9 +662,23 @@ func TestGoodCountedPortSetData(t *testing.T) {
 		{Key: []byte{3, 232}, Counter: &expr.Counter{Bytes: 100, Packets: 1}},
 	}
 
-	res, err := countedPortSetData(elements)
+	res, err := portSetData(elements)
 
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(res))
-	assert.Equal(t, countedSetData{bytes: 100, packets: 1, setData: SetData{PortRangeStart: 1000, PortRangeEnd: 1001}}, res[0])
+	assert.Equal(t, SetData{counter: counter{bytes: 100, packets: 1, exists: true}, PortRangeStart: 1000, PortRangeEnd: 1001}, res[0])
+}
+
+func TestNoCounterPortSetData(t *testing.T) {
+	elements := []nftables.SetElement{
+		{Key: []byte{3, 234}, IntervalEnd: true},
+		{Key: []byte{3, 232}},
+	}
+
+	res, err := portSetData(elements)
+
+	assert.False(t, res[0].counter.exists)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(res))
+	assert.Equal(t, SetData{PortRangeStart: 1000, PortRangeEnd: 1001}, res[0])
 }

@@ -41,7 +41,7 @@ func TestAddRule(t *testing.T) {
 
 	// we only test the private add since we don't yet have a good way to test responses from netlink, only messages to netlink
 	add(c, table, chain, rD)
-	c.Flush()
+	assert.Nil(t, c.Flush())
 }
 
 func testDialWithWant(t *testing.T, want [][]byte) *nftables.Conn {

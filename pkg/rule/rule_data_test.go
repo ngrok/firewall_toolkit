@@ -29,7 +29,7 @@ func TestCounters(t *testing.T) {
 	expressions := []expr.Any{&expr.Counter{Bytes: bytes, Packets: packets}}
 
 	rd := NewRuleData(id, expressions)
-	resBytes, resPackets, resError := rd.counters()
+	resBytes, resPackets, resError := rd.Counters()
 
 	assert.Nil(t, resError)
 	assert.EqualValues(t, *resBytes, bytes)
@@ -40,7 +40,7 @@ func TestCountersNoExpressions(t *testing.T) {
 	id := []byte{0xd, 0xe, 0xa, 0xd}
 
 	rd := NewRuleData(id, []expr.Any{})
-	resBytes, resPackets, resError := rd.counters()
+	resBytes, resPackets, resError := rd.Counters()
 
 	assert.NotNil(t, resError)
 	assert.Nil(t, resBytes)

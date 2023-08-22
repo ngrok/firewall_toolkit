@@ -133,7 +133,7 @@ func main() {
 
 	ruleTarget := rule.NewRuleTarget(nfTable, nfChain)
 
-	ruleInfo := newRuleInfo(portSet.GetSet(), ipv4Set.GetSet(), ipv6Set.GetSet())
+	ruleInfo := newRuleInfo(portSet.Set(), ipv4Set.Set(), ipv6Set.Set())
 
 	ruleData, err := ruleInfo.createRuleData()
 	if err != nil {

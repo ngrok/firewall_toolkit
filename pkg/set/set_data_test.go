@@ -365,3 +365,29 @@ func TestGoodPortRangeBytes(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, SetData{PortRangeStart: 1000, PortRangeEnd: 1001}, res)
 }
+
+func TestCounters(t *testing.T) {
+	data := SetData{
+		counter: counter{
+			bytes:   123,
+			packets: 456,
+			exists:  true,
+		},
+	}
+
+	bytes, packets, err := data.Counters()
+
+	assert.Nil(t, err)
+	assert.EqualValues(t, data.counter.bytes, *bytes)
+	assert.EqualValues(t, data.counter.packets, *packets)
+}
+
+func TestNilCounters(t *testing.T) {
+	data := SetData{}
+
+	bytes, packets, err := data.Counters()
+
+	assert.Error(t, err)
+	assert.Nil(t, bytes)
+	assert.Nil(t, packets)
+}

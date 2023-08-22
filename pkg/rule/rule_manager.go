@@ -152,16 +152,16 @@ func (r *ManagedRules) genTags(additional []string) []string {
 }
 
 func (r *ManagedRules) emitUsageCounters(ruleData RuleData) {
-	bytes, packets, err := ruleData.counters()
+	bytes, packets, err := ruleData.Counters()
 	if err != nil {
 		r.logger.Warnf("error getting rule counter: %v", err)
 		return
 	}
-	err = r.metrics.Count(m.Prefix("fwng-agent.bytes"), *bytes, r.genTags([]string{fmt.Sprintf("id:%x", ruleData.ID)}), 1)
+	err = r.metrics.Count(m.Prefix("fwng-agent.bytes"), int64(*bytes), r.genTags([]string{fmt.Sprintf("id:%x", ruleData.ID)}), 1)
 	if err != nil {
 		r.logger.Warnf("error sending fwng-agent.bytes metric: %v", err)
 	}
-	err = r.metrics.Count(m.Prefix("fwng-agent.packets"), *packets, r.genTags([]string{fmt.Sprintf("id:%x", ruleData.ID)}), 1)
+	err = r.metrics.Count(m.Prefix("fwng-agent.packets"), int64(*packets), r.genTags([]string{fmt.Sprintf("id:%x", ruleData.ID)}), 1)
 	if err != nil {
 		r.logger.Warnf("error sending fwng-agent.packets metric: %v", err)
 	}
