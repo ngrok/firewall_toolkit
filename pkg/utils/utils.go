@@ -27,12 +27,8 @@ func ValidatePortRange(start uint16, end uint16) error {
 
 // Validates a port number
 func ValidatePort(port uint16) error {
-	if port < 1 {
-		return fmt.Errorf("port (%v) less than 1", port)
-	}
-
-	if port > 65535 {
-		return fmt.Errorf("port (%v) greater than 65535", port)
+	if port == 0 {
+		return fmt.Errorf("port (%v) was 0", port)
 	}
 
 	return nil
