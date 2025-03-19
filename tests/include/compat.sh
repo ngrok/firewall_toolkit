@@ -13,7 +13,7 @@ if [ -z $JQ ]; then
 fi
 
 JQ="$JQ -r"
-GO_BIN_PATH=/root/go/bin
+GO_BIN_PATH=/go/bin
 NFT_LIST_TABLE_JSON="$NFT -j list table"
 TABLE="compat-test"
 CHAIN="filter"

@@ -17,7 +17,9 @@ package nftables
 import (
 	"errors"
 	"fmt"
+	"os"
 	"sync"
+	"syscall"
 
 	"github.com/google/nftables/binaryutil"
 	"github.com/google/nftables/expr"
@@ -36,15 +38,19 @@ type Conn struct {
 	TestDial nltest.Func // for testing only; passed to nltest.Dial
 	NetNS    int         // fd referencing the network namespace netlink will interact with.
 
-	lasting  bool       // establish a lasting connection to be used across multiple netlink operations.
-	mu       sync.Mutex // protects the following state
-	messages []netlink.Message
-	err      error
-	nlconn   *netlink.Conn // netlink socket using NETLINK_NETFILTER protocol.
+	lasting     bool       // establish a lasting connection to be used across multiple netlink operations.
+	mu          sync.Mutex // protects the following state
+	messages    []netlink.Message
+	err         error
+	nlconn      *netlink.Conn // netlink socket using NETLINK_NETFILTER protocol.
+	sockOptions []SockOption
 }
 
 // ConnOption is an option to change the behavior of the nftables Conn returned by Open.
 type ConnOption func(*Conn)
+
+// SockOption is an option to change the behavior of the netlink socket used by the nftables Conn.
+type SockOption func(*netlink.Conn) error
 
 // New returns a netlink connection for querying and modifying nftables. Some
 // aspects of the new netlink connection can be configured using the options
@@ -97,6 +103,14 @@ func WithNetNSFd(fd int) ConnOption {
 func WithTestDial(f nltest.Func) ConnOption {
 	return func(cc *Conn) {
 		cc.TestDial = f
+	}
+}
+
+// WithSockOptions sets the specified socket options when creating a new netlink
+// connection.
+func WithSockOptions(opts ...SockOption) ConnOption {
+	return func(cc *Conn) {
+		cc.sockOptions = append(cc.sockOptions, opts...)
 	}
 }
 
@@ -154,14 +168,33 @@ func receiveAckAware(nlconn *netlink.Conn, sentMsgFlags netlink.HeaderFlags) ([]
 		return reply, nil
 	}
 
-	// Dump flag is not set, we expect an ack
+	if len(reply) != 0 {
+		last := reply[len(reply)-1]
+		for re := last.Header.Type; (re&netlink.Overrun) == netlink.Overrun && (re&netlink.Done) != netlink.Done; re = last.Header.Type {
+			// we are not finished, the message is overrun
+			r, err := nlconn.Receive()
+			if err != nil {
+				return nil, err
+			}
+			reply = append(reply, r...)
+			last = reply[len(reply)-1]
+		}
+
+		if last.Header.Type == netlink.Error && binaryutil.BigEndian.Uint32(last.Data[:4]) == 0 {
+			// we have already collected an ack
+			return reply, nil
+		}
+	}
+
+	// Now we expect an ack
 	ack, err := nlconn.Receive()
 	if err != nil {
 		return nil, err
 	}
 
 	if len(ack) == 0 {
-		return nil, errors.New("received an empty ack")
+		// received an empty ack?
+		return reply, nil
 	}
 
 	msg := ack[0]
@@ -230,14 +263,20 @@ func (cc *Conn) Flush() error {
 		return fmt.Errorf("SendMessages: %w", err)
 	}
 
+	var errs error
 	// Fetch the requested acknowledgement for each message we sent.
 	for _, msg := range cc.messages {
-		if msg.Header.Flags&netlink.Acknowledge == 0 {
-			continue // message did not request an acknowledgement
+		if _, err := receiveAckAware(conn, msg.Header.Flags); err != nil {
+			if errors.Is(err, os.ErrPermission) || errors.Is(err, syscall.ENOBUFS) {
+				// Kernel will only send one error to user space.
+				return err
+			}
+			errs = errors.Join(errs, err)
 		}
-		if _, err := conn.Receive(); err != nil {
-			return fmt.Errorf("conn.Receive: %w", err)
-		}
+	}
+
+	if errs != nil {
+		return fmt.Errorf("conn.Receive: %w", errs)
 	}
 
 	return nil
@@ -258,11 +297,28 @@ func (cc *Conn) FlushRuleset() {
 }
 
 func (cc *Conn) dialNetlink() (*netlink.Conn, error) {
+	var (
+		conn *netlink.Conn
+		err  error
+	)
+
 	if cc.TestDial != nil {
-		return nltest.Dial(cc.TestDial), nil
+		conn = nltest.Dial(cc.TestDial)
+	} else {
+		conn, err = netlink.Dial(unix.NETLINK_NETFILTER, &netlink.Config{NetNS: cc.NetNS})
 	}
 
-	return netlink.Dial(unix.NETLINK_NETFILTER, &netlink.Config{NetNS: cc.NetNS})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, opt := range cc.sockOptions {
+		if err := opt(conn); err != nil {
+			return nil, err
+		}
+	}
+
+	return conn, nil
 }
 
 func (cc *Conn) setErr(err error) {

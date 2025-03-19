@@ -32,10 +32,9 @@ const (
 	QueueTotal QueueAttribute = unix.NFTA_QUEUE_TOTAL
 	QueueFlags QueueAttribute = unix.NFTA_QUEUE_FLAGS
 
-	// TODO: get into x/sys/unix
-	QueueFlagBypass QueueFlag = 0x01
-	QueueFlagFanout QueueFlag = 0x02
-	QueueFlagMask   QueueFlag = 0x03
+	QueueFlagBypass QueueFlag = unix.NFT_QUEUE_FLAG_BYPASS
+	QueueFlagFanout QueueFlag = unix.NFT_QUEUE_FLAG_CPU_FANOUT
+	QueueFlagMask   QueueFlag = unix.NFT_QUEUE_FLAG_MASK
 )
 
 type Queue struct {
@@ -45,20 +44,24 @@ type Queue struct {
 }
 
 func (e *Queue) marshal(fam byte) ([]byte, error) {
-	if e.Total == 0 {
-		e.Total = 1 // The total default value is 1
-	}
-	data, err := netlink.MarshalAttributes([]netlink.Attribute{
-		{Type: unix.NFTA_QUEUE_NUM, Data: binaryutil.BigEndian.PutUint16(e.Num)},
-		{Type: unix.NFTA_QUEUE_TOTAL, Data: binaryutil.BigEndian.PutUint16(e.Total)},
-		{Type: unix.NFTA_QUEUE_FLAGS, Data: binaryutil.BigEndian.PutUint16(uint16(e.Flag))},
-	})
+	data, err := e.marshalData(fam)
 	if err != nil {
 		return nil, err
 	}
 	return netlink.MarshalAttributes([]netlink.Attribute{
 		{Type: unix.NFTA_EXPR_NAME, Data: []byte("queue\x00")},
 		{Type: unix.NLA_F_NESTED | unix.NFTA_EXPR_DATA, Data: data},
+	})
+}
+
+func (e *Queue) marshalData(fam byte) ([]byte, error) {
+	if e.Total == 0 {
+		e.Total = 1 // The total default value is 1
+	}
+	return netlink.MarshalAttributes([]netlink.Attribute{
+		{Type: unix.NFTA_QUEUE_NUM, Data: binaryutil.BigEndian.PutUint16(e.Num)},
+		{Type: unix.NFTA_QUEUE_TOTAL, Data: binaryutil.BigEndian.PutUint16(e.Total)},
+		{Type: unix.NFTA_QUEUE_FLAGS, Data: binaryutil.BigEndian.PutUint16(uint16(e.Flag))},
 	})
 }
 

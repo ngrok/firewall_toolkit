@@ -132,6 +132,7 @@ begin_test "add port 8000 back to the list"
 )
 end_test
 
+sleep 3 # this one needs a bit of time for the ip list to be updated by the manager
 begin_test "add ip range (192.0.2.101-192.0.2.105) to the list"
 (
     $DOCKER_COMPOSE_EXEC $NFT_LIST_TABLE inet $TABLE

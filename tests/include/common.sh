@@ -1,6 +1,6 @@
 #!/bin/bash
 
-NFT=`which nft`
+NFT=/usr/sbin/nft
 
 if [ -z $NFT ]; then 
     echo "nft not installed"
