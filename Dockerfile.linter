@@ -1,4 +1,4 @@
-FROM golangci/golangci-lint:v1.50.0
+FROM golangci/golangci-lint:v1.64
 
 ADD . /go/src/github.com/ngrok/firewall_toolkit
 WORKDIR /go/src/github.com/ngrok/firewall_toolkit

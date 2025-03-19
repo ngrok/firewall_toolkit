@@ -11,7 +11,7 @@ python3 -m http.server --cgi 8001 2> /var/log/py-http-8001.log &
 python3 -m http.server --cgi 8002 2> /var/log/py-http-8002.log &
 
 # Start the helper process
-/root/go/bin/fwtk-input-filter-sets \
+/go/bin/fwtk-input-filter-sets \
     -chain=filter \
     -table=testmanager \
     -iplist=/go/src/github.com/ngrok/firewall_toolkit/tests/integration_ip.list \

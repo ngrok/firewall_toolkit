@@ -1,4 +1,3 @@
-version: '3'
 services:
   fwtk-input-filter-sets-manager:
     image: firewall_toolkit:${TAG}
